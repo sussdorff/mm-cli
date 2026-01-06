@@ -269,21 +269,39 @@ def _parse_category_tree(
             _parse_category_tree(children, result, cat_id, cat_name)
 
 
+# Supported export formats for transactions
+EXPORT_FORMATS = {"plist", "csv", "ofx", "sta", "xls", "numbers", "camt.053"}
+
+
 def export_transactions(
     account_id: str | None = None,
     from_date: date | None = None,
     to_date: date | None = None,
-) -> list[Transaction]:
+    export_format: str = "plist",
+) -> list[Transaction] | str:
     """Export transactions from MoneyMoney.
 
     Args:
         account_id: Optional account ID/IBAN to filter by.
         from_date: Optional start date.
         to_date: Optional end date.
+        export_format: Export format - "plist" returns Transaction objects,
+                      other formats ("csv", "ofx", "sta", "xls", "numbers", "camt.053")
+                      return a file path to the exported file.
 
     Returns:
-        List of Transaction objects.
+        List of Transaction objects for "plist" format,
+        or file path string for other formats.
+
+    Raises:
+        ValueError: If export_format is not supported.
     """
+    if export_format not in EXPORT_FORMATS:
+        raise ValueError(
+            f"Unsupported export format: {export_format}. "
+            f"Supported formats: {', '.join(sorted(EXPORT_FORMATS))}"
+        )
+
     # Build AppleScript command
     parts = ['tell application "MoneyMoney" to export transactions']
 
@@ -296,9 +314,13 @@ def export_transactions(
     if to_date:
         parts.append(f'to date "{to_date.isoformat()}"')
 
-    parts.append('as "plist"')
+    parts.append(f'as "{export_format}"')
 
     script = " ".join(parts)
+
+    # For non-plist formats, return the file path directly
+    if export_format != "plist":
+        return run_applescript(script)
     data = _run_export_script(script)
 
     # Transaction export returns a dict with 'transactions' key

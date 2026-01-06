@@ -9,6 +9,7 @@ import typer
 
 from mm_cli import __version__
 from mm_cli.applescript import (
+    EXPORT_FORMATS,
     AppleScriptError,
     MoneyMoneyNotRunningError,
     export_accounts,
@@ -223,6 +224,87 @@ def category_usage(
             return
 
         output_category_usage(usage_list, format)
+
+    except Exception as e:
+        handle_applescript_error(e)
+
+
+@app.command("export")
+def export_file(
+    account: Annotated[
+        str | None,
+        typer.Option("--account", "-a", help="Filter by account ID, IBAN, or name"),
+    ] = None,
+    from_date: Annotated[
+        str | None,
+        typer.Option("--from", "-f", help="Start date (YYYY-MM-DD)"),
+    ] = None,
+    to_date: Annotated[
+        str | None,
+        typer.Option("--to", "-t", help="End date (YYYY-MM-DD)"),
+    ] = None,
+    export_format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            help=f"Export format: {', '.join(sorted(EXPORT_FORMATS - {'plist'}))}",
+        ),
+    ] = "sta",
+    output: Annotated[
+        str | None,
+        typer.Option("--output", "-o", help="Output file path (default: print temp file path)"),
+    ] = None,
+) -> None:
+    """Export transactions to a file (MT940, CSV, OFX, etc.).
+
+    Exports transactions from MoneyMoney to various file formats.
+    By default exports to MT940/STA format for import into accounting software.
+
+    Examples:
+        mm export --from 2024-01-01 --to 2024-12-31
+        mm export -a "DE89370400440532013000" -f sta -o ~/transactions.sta
+        mm export --format csv --from 2024-01-01
+    """
+    try:
+        if export_format == "plist":
+            print_error("Use 'mm transactions' command for plist/structured data.")
+            raise typer.Exit(1)
+
+        if export_format not in EXPORT_FORMATS:
+            print_error(
+                f"Unsupported format: {export_format}. "
+                f"Supported: {', '.join(sorted(EXPORT_FORMATS - {'plist'}))}"
+            )
+            raise typer.Exit(1)
+
+        # Parse dates
+        start = parse_date(from_date) if from_date else None
+        end = parse_date(to_date) if to_date else None
+
+        # Export transactions
+        result = export_transactions(
+            account_id=account,
+            from_date=start,
+            to_date=end,
+            export_format=export_format,
+        )
+
+        # Result is a file path for non-plist formats
+        if isinstance(result, str):
+            temp_path = result
+
+            if output:
+                # Copy to specified output path
+                import shutil
+                from pathlib import Path
+
+                output_path = Path(output).expanduser()
+                shutil.copy(temp_path, output_path)
+                print_success(f"Exported to: {output_path}")
+            else:
+                # Just print the temp file path
+                print_info(f"Exported to temporary file: {temp_path}")
+                print_info("Use --output/-o to save to a specific location.")
 
     except Exception as e:
         handle_applescript_error(e)
