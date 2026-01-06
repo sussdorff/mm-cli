@@ -141,18 +141,22 @@ def sample_transactions() -> list[Transaction]:
 
 @pytest.fixture
 def sample_plist_accounts() -> list[dict]:
-    """Sample plist data as returned by MoneyMoney for accounts."""
+    """Sample plist data as returned by MoneyMoney for accounts.
+
+    Note: MoneyMoney uses nested arrays for balance: [[amount, currency]]
+    and 'group' is a boolean (True for account groups, False for actual accounts).
+    """
     return [
         {
+            "uuid": "3c782ac3-ed8e-429e-8c21-56bf1324999d",
             "accountNumber": "DE89370400440532013000",
             "name": "Girokonto",
             "bankName": "Commerzbank",
-            "balance": [1234.56, "EUR"],
-            "type": "checking",
+            "bankCode": "COBADEFFXXX",
+            "balance": [[1234.56, "EUR"]],  # Nested array format
+            "type": "Girokonto",
             "owner": "Max Mustermann",
-            "iban": "DE89370400440532013000",
-            "bic": "COBADEFFXXX",
-            "group": "Hauptkonten",
+            "group": False,  # False = actual account, True = account group
             "portfolio": False,
         },
     ]

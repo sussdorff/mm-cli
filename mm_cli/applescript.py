@@ -59,6 +59,20 @@ def run_applescript(script: str) -> str:
         raise AppleScriptError(f"AppleScript error: {error_msg}") from e
 
 
+def _parse_plist_data(data: str | bytes) -> dict | list:
+    """Parse plist data and return its contents.
+
+    Args:
+        data: Plist data as string or bytes.
+
+    Returns:
+        Parsed plist content.
+    """
+    if isinstance(data, str):
+        data = data.encode("utf-8")
+    return plistlib.loads(data)
+
+
 def _parse_plist_file(file_path: str) -> dict | list:
     """Parse a plist file and return its contents.
 
@@ -76,19 +90,31 @@ def _parse_plist_file(file_path: str) -> dict | list:
 def _run_export_script(script: str) -> dict | list:
     """Run an export AppleScript and parse the plist result.
 
+    MoneyMoney returns plist data directly as XML string.
+
     Args:
-        script: AppleScript that returns a plist file path.
+        script: AppleScript that returns plist data.
 
     Returns:
         Parsed plist content.
     """
-    file_path = run_applescript(script)
-    return _parse_plist_file(file_path)
+    result = run_applescript(script)
+
+    # MoneyMoney returns plist XML directly
+    if result.startswith("<?xml") or result.startswith("<plist"):
+        return _parse_plist_data(result)
+
+    # Fallback: treat as file path (older behavior)
+    return _parse_plist_file(result)
 
 
 def _parse_account_type(type_str: str) -> AccountType:
-    """Parse account type string to enum."""
+    """Parse account type string to enum.
+
+    Handles both English and German type names from MoneyMoney.
+    """
     type_map = {
+        # English names
         "checking": AccountType.CHECKING,
         "savings": AccountType.SAVINGS,
         "credit card": AccountType.CREDIT_CARD,
@@ -97,6 +123,15 @@ def _parse_account_type(type_str: str) -> AccountType:
         "investment": AccountType.INVESTMENT,
         "depot": AccountType.INVESTMENT,
         "loan": AccountType.LOAN,
+        # German names (as used by MoneyMoney)
+        "girokonto": AccountType.CHECKING,
+        "sparkonto": AccountType.SAVINGS,
+        "tagesgeldkonto": AccountType.SAVINGS,
+        "kreditkarte": AccountType.CREDIT_CARD,
+        "bargeld": AccountType.CASH,
+        "wertpapierdepot": AccountType.INVESTMENT,
+        "kredit": AccountType.LOAN,
+        "darlehen": AccountType.LOAN,
     }
     return type_map.get(type_str.lower(), AccountType.OTHER)
 
@@ -111,6 +146,33 @@ def _parse_category_type(type_int: int) -> CategoryType:
     return CategoryType.EXPENSE
 
 
+def _extract_balance(balance_data: list | None) -> tuple[Decimal, str]:
+    """Extract balance amount and currency from MoneyMoney balance structure.
+
+    MoneyMoney returns balance as [[amount, currency]] (nested array).
+
+    Args:
+        balance_data: Balance data from plist.
+
+    Returns:
+        Tuple of (amount, currency).
+    """
+    if not balance_data:
+        return Decimal("0"), "EUR"
+
+    # Handle nested array: [[amount, currency]]
+    if isinstance(balance_data, list) and len(balance_data) > 0:
+        inner = balance_data[0]
+        if isinstance(inner, list) and len(inner) >= 2:
+            return Decimal(str(inner[0])), str(inner[1])
+        elif isinstance(inner, (int, float)):
+            # Simple [amount, currency] format
+            currency = balance_data[1] if len(balance_data) > 1 else "EUR"
+            return Decimal(str(inner)), str(currency)
+
+    return Decimal("0"), "EUR"
+
+
 def export_accounts() -> list[Account]:
     """Export all accounts from MoneyMoney.
 
@@ -122,20 +184,26 @@ def export_accounts() -> list[Account]:
 
     accounts = []
     for item in data:
-        balance_data = item.get("balance", [0, "EUR"])
-        currency = balance_data[1] if isinstance(balance_data, list) else "EUR"
+        balance, currency = _extract_balance(item.get("balance"))
+
+        # Skip account groups (they have group=True)
+        if item.get("group", False):
+            continue
+
+        account_num = item.get("accountNumber", "")
+        iban = account_num if "DE" in str(account_num) else ""
         account = Account(
-            id=str(item.get("accountNumber", "")),
+            id=str(item.get("uuid", account_num)),
             name=item.get("name", ""),
-            account_number=item.get("accountNumber", ""),
+            account_number=account_num,
             bank_name=item.get("bankName", item.get("bankCode", "")),
-            balance=Decimal(str(balance_data[0])),
+            balance=balance,
             currency=currency,
             account_type=_parse_account_type(item.get("type", "other")),
             owner=item.get("owner", ""),
-            iban=item.get("iban", ""),
-            bic=item.get("bic", ""),
-            group=item.get("group", ""),
+            iban=iban,
+            bic=item.get("bankCode", ""),
+            group=item.get("group", False),
             portfolio=item.get("portfolio", False),
         )
         accounts.append(account)
@@ -175,14 +243,23 @@ def _parse_category_tree(
         cat_id = item.get("uuid", "")
         cat_name = item.get("name", "")
 
+        # Safely parse budget
+        budget = None
+        budget_raw = item.get("budget")
+        if budget_raw is not None:
+            try:
+                budget = Decimal(str(budget_raw))
+            except Exception:
+                pass
+
         category = Category(
             id=cat_id,
             name=cat_name,
             category_type=_parse_category_type(item.get("type", 0)),
             parent_id=parent_id,
             parent_name=parent_name,
-            icon=item.get("icon", ""),
-            budget=Decimal(str(item.get("budget"))) if item.get("budget") else None,
+            icon=str(item.get("icon", "")) if item.get("icon") else "",
+            budget=budget,
         )
         result.append(category)
 
@@ -224,17 +301,32 @@ def export_transactions(
     script = " ".join(parts)
     data = _run_export_script(script)
 
+    # Transaction export returns a dict with 'transactions' key
+    if isinstance(data, dict):
+        tx_list = data.get("transactions", [])
+    else:
+        tx_list = data
+
     transactions = []
-    for item in data:
-        # Parse dates
+    for item in tx_list:
+        # Parse dates - MoneyMoney returns datetime objects
         booking_date = item.get("bookingDate", date.today())
         value_date = item.get("valueDate", booking_date)
 
-        # Handle date objects vs strings
-        if isinstance(booking_date, str):
-            booking_date = date.fromisoformat(booking_date)
-        if isinstance(value_date, str):
-            value_date = date.fromisoformat(value_date)
+        # Handle datetime objects (convert to date)
+        if hasattr(booking_date, "date"):
+            booking_date = booking_date.date()
+        elif isinstance(booking_date, str):
+            booking_date = date.fromisoformat(booking_date[:10])
+
+        if hasattr(value_date, "date"):
+            value_date = value_date.date()
+        elif isinstance(value_date, str):
+            value_date = date.fromisoformat(value_date[:10])
+
+        # Extract category name from path (e.g., "Haushalt\Ausgaben\Essen" -> "Essen")
+        category_path = item.get("category", None)
+        category_name = category_path.split("\\")[-1] if category_path else None
 
         transaction = Transaction(
             id=str(item.get("id", "")),
@@ -247,7 +339,7 @@ def export_transactions(
             name=item.get("name", ""),
             purpose=item.get("purpose", ""),
             category_id=item.get("categoryUuid", None),
-            category_name=item.get("category", None),
+            category_name=category_name,
             checkmark=item.get("checkmark", False),
             comment=item.get("comment", ""),
             booked=item.get("booked", True),
