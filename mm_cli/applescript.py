@@ -214,43 +214,72 @@ def export_accounts() -> list[Account]:
 def export_categories() -> list[Category]:
     """Export all categories from MoneyMoney.
 
+    MoneyMoney returns a flat list with 'indentation' levels (0, 1, 2, ...)
+    to represent hierarchy. We reconstruct parent-child relationships from
+    the indentation levels.
+
     Returns:
-        List of Category objects.
+        List of Category objects with hierarchy information.
     """
     script = 'tell application "MoneyMoney" to export categories'
     data = _run_export_script(script)
 
     categories = []
-    _parse_category_tree(data, categories, parent_id=None, parent_name=None)
+    _parse_category_list(data, categories)
     return categories
 
 
-def _parse_category_tree(
+def _parse_category_list(
     items: list,
     result: list[Category],
-    parent_id: str | None,
-    parent_name: str | None,
 ) -> None:
-    """Recursively parse category tree.
+    """Parse flat category list using indentation levels to rebuild hierarchy.
+
+    MoneyMoney exports categories as a flat list where each item has an
+    'indentation' field (0 = root, 1 = child, 2 = grandchild, etc.).
+    Items with 'group' = True are category folders/groups.
 
     Args:
         items: List of category dicts from plist.
         result: List to append Category objects to.
-        parent_id: ID of parent category.
-        parent_name: Name of parent category.
     """
+    # Track parent stack: list of (id, name) at each indentation level
+    parent_stack: list[tuple[str, str]] = []
+
     for item in items:
         cat_id = item.get("uuid", "")
         cat_name = item.get("name", "")
+        indentation = item.get("indentation", 0)
+        is_group = item.get("group", False)
+        rules = item.get("rules", "")
 
         # Safely parse budget
         budget = None
         budget_raw = item.get("budget")
         if budget_raw is not None:
-            try:
-                budget = Decimal(str(budget_raw))
-            except Exception:
-                pass
+            if isinstance(budget_raw, dict):
+                amount = budget_raw.get("amount")
+                if amount is not None:
+                    try:
+                        budget = Decimal(str(amount))
+                    except Exception:
+                        pass
+            else:
+                try:
+                    budget = Decimal(str(budget_raw))
+                except Exception:
+                    pass
+
+        # Trim parent stack to current indentation level
+        parent_stack = parent_stack[:indentation]
+
+        # Determine parent from stack
+        parent_id = parent_stack[-1][0] if parent_stack else None
+        parent_name = parent_stack[-1][1] if parent_stack else None
+
+        # Build full path
+        path_parts = [p[1] for p in parent_stack] + [cat_name]
+        path = "\\".join(path_parts)
 
         category = Category(
             id=cat_id,
@@ -260,13 +289,15 @@ def _parse_category_tree(
             parent_name=parent_name,
             icon=str(item.get("icon", "")) if item.get("icon") else "",
             budget=budget,
+            indentation=indentation,
+            group=is_group,
+            rules=rules,
+            path=path,
         )
         result.append(category)
 
-        # Recursively process children
-        children = item.get("children", [])
-        if children:
-            _parse_category_tree(children, result, cat_id, cat_name)
+        # Push this category onto the parent stack for potential children
+        parent_stack.append((cat_id, cat_name))
 
 
 # Supported export formats for transactions

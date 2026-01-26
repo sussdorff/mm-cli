@@ -10,7 +10,7 @@ from mm_cli.applescript import (
     AppleScriptError,
     MoneyMoneyNotRunningError,
     _parse_account_type,
-    _parse_category_tree,
+    _parse_category_list,
     _parse_category_type,
     export_accounts,
     export_categories,
@@ -78,23 +78,66 @@ class TestParseHelpers:
         assert _parse_category_type(0) == CategoryType.EXPENSE
         assert _parse_category_type(1) == CategoryType.INCOME
 
-    def test_parse_category_tree(self, sample_plist_categories: list[dict]) -> None:
-        """Test recursive category tree parsing."""
+    def test_parse_category_list(self, sample_plist_categories: list[dict]) -> None:
+        """Test indentation-based category list parsing."""
         result: list[Category] = []
-        _parse_category_tree(sample_plist_categories, result, None, None)
+        _parse_category_list(sample_plist_categories, result)
 
-        # Should have 4 categories (2 parents + 2 children)
+        # Should have 4 categories (2 groups + 2 leaves)
         assert len(result) == 4
 
-        # Check parent category
+        # Check root group category
         parent = result[0]
         assert parent.name == "Einkommen"
         assert parent.parent_id is None
+        assert parent.indentation == 0
+        assert parent.group is True
+        assert parent.path == "Einkommen"
 
         # Check child category
         child = result[1]
         assert child.name == "Gehalt"
+        assert child.parent_id == parent.id
         assert child.parent_name == "Einkommen"
+        assert child.indentation == 1
+        assert child.group is False
+        assert child.rules == "(Gehalt AND name:Cognovis)"
+        assert child.path == "Einkommen\\Gehalt"
+
+        # Check second root group
+        parent2 = result[2]
+        assert parent2.name == "Lebenshaltung"
+        assert parent2.parent_id is None
+        assert parent2.indentation == 0
+
+        # Check second child
+        child2 = result[3]
+        assert child2.name == "Lebensmittel"
+        assert child2.parent_name == "Lebenshaltung"
+        assert child2.path == "Lebenshaltung\\Lebensmittel"
+        assert child2.rules == "REWE OR Aldi"
+
+    def test_parse_category_list_deep_hierarchy(self) -> None:
+        """Test parsing categories with 3+ levels of nesting."""
+        items = [
+            {"uuid": "1", "name": "Root", "type": 0, "indentation": 0, "group": True, "rules": ""},
+            {"uuid": "2", "name": "Mid", "type": 0, "indentation": 1, "group": True, "rules": ""},
+            {"uuid": "3", "name": "Leaf", "type": 0, "indentation": 2, "group": False, "rules": "test rule"},
+            {"uuid": "4", "name": "Other Root", "type": 0, "indentation": 0, "group": False, "rules": ""},
+        ]
+        result: list[Category] = []
+        _parse_category_list(items, result)
+
+        assert len(result) == 4
+        assert result[0].path == "Root"
+        assert result[1].path == "Root\\Mid"
+        assert result[1].parent_name == "Root"
+        assert result[2].path == "Root\\Mid\\Leaf"
+        assert result[2].parent_name == "Mid"
+        assert result[2].parent_id == "2"
+        assert result[2].rules == "test rule"
+        assert result[3].path == "Other Root"
+        assert result[3].parent_id is None
 
 
 class TestExportFunctions:

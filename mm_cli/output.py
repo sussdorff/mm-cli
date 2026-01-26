@@ -11,8 +11,12 @@ from rich.console import Console
 from rich.table import Table
 
 from mm_cli.models import Account, Category, CategoryUsage, Transaction
+from mm_cli.rules import RuleSuggestion
+
+import sys as _sys
 
 console = Console()
+err_console = Console(stderr=True)
 
 
 class OutputFormat(str, Enum):
@@ -65,7 +69,7 @@ def output_accounts(accounts: list[Account], format: OutputFormat = OutputFormat
     """
     if format == OutputFormat.JSON:
         data = [acc.to_dict() for acc in accounts]
-        console.print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
         return
 
     if format == OutputFormat.CSV:
@@ -126,14 +130,14 @@ def output_categories(
     """
     if format == OutputFormat.JSON:
         data = [cat.to_dict() for cat in categories]
-        console.print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
         return
 
     if format == OutputFormat.CSV:
         output = io.StringIO()
         writer = csv.DictWriter(
             output,
-            fieldnames=["id", "name", "category_type", "parent_name"],
+            fieldnames=["id", "name", "path", "category_type", "parent_name", "group", "rules"],
         )
         writer.writeheader()
         for cat in categories:
@@ -141,33 +145,43 @@ def output_categories(
                 {
                     "id": cat.id,
                     "name": cat.name,
+                    "path": cat.path,
                     "category_type": cat.category_type.value,
                     "parent_name": cat.parent_name or "",
+                    "group": cat.group,
+                    "rules": cat.rules,
                 }
             )
         console.print(output.getvalue())
         return
 
-    # Table format - group by parent
+    # Table format - show hierarchy via indentation
     table = Table(title="Categories", show_header=True, header_style="bold")
-    table.add_column("Name", style="cyan")
-    table.add_column("Type")
-    table.add_column("Parent", style="dim")
+    table.add_column("Name", style="cyan", min_width=30)
+    table.add_column("Rules", style="dim", max_width=40)
     table.add_column("ID", style="dim")
 
     for cat in categories:
-        type_style = "green" if cat.category_type.value == "income" else "red"
-        indent = "  └ " if cat.parent_name else ""
+        # Build indented name with tree characters
+        indent = "  " * cat.indentation
+        if cat.group:
+            name_display = f"{indent}[bold]{cat.name}[/bold]"
+        else:
+            name_display = f"{indent}{cat.name}"
+
+        # Truncate rules for display
+        rules_display = cat.rules.replace("\n", " ").strip()[:40] if cat.rules else ""
 
         table.add_row(
-            f"{indent}{cat.name}",
-            f"[{type_style}]{cat.category_type.value}[/{type_style}]",
-            cat.parent_name or "-",
-            cat.id[:8] + "..." if len(cat.id) > 8 else cat.id,
+            name_display,
+            rules_display,
+            cat.id[:8] + "...",
         )
 
     console.print(table)
-    console.print(f"\n[dim]Total: {len(categories)} categories[/dim]")
+    group_count = sum(1 for c in categories if c.group)
+    leaf_count = len(categories) - group_count
+    console.print(f"\n[dim]Total: {len(categories)} categories ({group_count} groups, {leaf_count} leaf)[/dim]")
 
 
 def output_transactions(
@@ -182,7 +196,7 @@ def output_transactions(
     """
     if format == OutputFormat.JSON:
         data = [tx.to_dict() for tx in transactions]
-        console.print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
         return
 
     if format == OutputFormat.CSV:
@@ -265,7 +279,7 @@ def output_category_usage(
     """
     if format == OutputFormat.JSON:
         data = [u.to_dict() for u in usage]
-        console.print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
         return
 
     if format == OutputFormat.CSV:
@@ -308,21 +322,137 @@ def output_category_usage(
     console.print(table)
 
 
+def output_suggestions(
+    suggestions: list[RuleSuggestion],
+    format: OutputFormat = OutputFormat.TABLE,
+) -> None:
+    """Output rule suggestions in the specified format.
+
+    Args:
+        suggestions: List of rule suggestions to output.
+        format: Output format.
+    """
+    if format == OutputFormat.JSON:
+        data = [s.to_dict() for s in suggestions]
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        return
+
+    if format == OutputFormat.CSV:
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=[
+                "pattern", "suggested_category", "category_path",
+                "match_count", "total_amount", "confidence", "existing_rule",
+            ],
+        )
+        writer.writeheader()
+        for s in suggestions:
+            writer.writerow({
+                "pattern": s.pattern,
+                "suggested_category": s.suggested_category,
+                "category_path": s.category_path,
+                "match_count": s.match_count,
+                "total_amount": str(s.total_amount),
+                "confidence": s.confidence,
+                "existing_rule": s.existing_rule.replace("\n", " ")[:60] if s.existing_rule else "",
+            })
+        console.print(output.getvalue())
+        return
+
+    # Table format
+    # Split into sections by confidence
+    has_existing = any(s.existing_rule for s in suggestions)
+    new_rules = [s for s in suggestions if not s.existing_rule]
+    existing_rules = [s for s in suggestions if s.existing_rule]
+
+    if new_rules:
+        table = Table(
+            title="Suggested New Rules",
+            show_header=True,
+            header_style="bold",
+        )
+        table.add_column("Pattern", style="cyan", min_width=25)
+        table.add_column("Category", min_width=20)
+        table.add_column("Path", style="dim", max_width=35)
+        table.add_column("#", justify="right")
+        table.add_column("Total", justify="right")
+        table.add_column("Conf.")
+        table.add_column("Samples", style="dim", max_width=40)
+
+        for s in new_rules:
+            conf_style = {"high": "green", "medium": "yellow", "low": "red"}
+            conf_color = conf_style.get(s.confidence, "dim")
+
+            # Build sample info
+            sample_names = []
+            for sample in s.sample_transactions[:2]:
+                sample_names.append(f"{sample['date']} {sample['amount']}")
+            sample_str = " | ".join(sample_names)
+
+            table.add_row(
+                s.pattern,
+                s.suggested_category,
+                s.category_path,
+                str(s.match_count),
+                format_currency(s.total_amount, "EUR"),
+                f"[{conf_color}]{s.confidence}[/{conf_color}]",
+                sample_str,
+            )
+
+        console.print(table)
+
+    if existing_rules:
+        console.print()
+        table = Table(
+            title="Already Covered by Existing Rules",
+            show_header=True,
+            header_style="bold",
+        )
+        table.add_column("Pattern", style="cyan", min_width=25)
+        table.add_column("Existing Category", min_width=20)
+        table.add_column("#", justify="right")
+        table.add_column("Existing Rule", style="dim", max_width=50)
+
+        for s in existing_rules:
+            rule_preview = s.existing_rule.replace("\n", " ").strip()[:50]
+            table.add_row(
+                s.pattern,
+                s.suggested_category,
+                str(s.match_count),
+                rule_preview,
+            )
+
+        console.print(table)
+
+    # Summary
+    console.print()
+    total_uncat = sum(s.match_count for s in suggestions)
+    covered = sum(s.match_count for s in existing_rules)
+    new_matchable = sum(s.match_count for s in new_rules if s.confidence != "low")
+    needs_manual = sum(s.match_count for s in new_rules if s.confidence == "low")
+    console.print(f"[bold]Summary:[/bold] {total_uncat} uncategorized transactions")
+    if covered:
+        console.print(f"  Already covered by rules (not applied?): {covered}")
+    console.print(f"  Matchable with new rules: {new_matchable}")
+    console.print(f"  Need manual categorization: {needs_manual}")
+
+
 def print_success(message: str) -> None:
     """Print a success message."""
-    console.print(f"[green]✓[/green] {message}")
+    err_console.print(f"[green]✓[/green] {message}")
 
 
 def print_error(message: str) -> None:
     """Print an error message."""
-    console.print(f"[red]✗[/red] {message}")
+    err_console.print(f"[red]✗[/red] {message}")
 
 
 def print_warning(message: str) -> None:
     """Print a warning message."""
-    console.print(f"[yellow]![/yellow] {message}")
+    err_console.print(f"[yellow]![/yellow] {message}")
 
 
 def print_info(message: str) -> None:
     """Print an info message."""
-    console.print(f"[blue]ℹ[/blue] {message}")
+    err_console.print(f"[blue]ℹ[/blue] {message}")

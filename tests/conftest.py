@@ -59,6 +59,9 @@ def sample_categories() -> list[Category]:
             category_type=CategoryType.INCOME,
             parent_id=None,
             parent_name=None,
+            indentation=0,
+            group=True,
+            path="Einkommen",
         ),
         Category(
             id="550e8400-e29b-41d4-a716-446655440001",
@@ -66,6 +69,10 @@ def sample_categories() -> list[Category]:
             category_type=CategoryType.INCOME,
             parent_id="550e8400-e29b-41d4-a716-446655440000",
             parent_name="Einkommen",
+            indentation=1,
+            group=False,
+            rules='(Gehalt AND name:Cognovis)',
+            path="Einkommen\\Gehalt",
         ),
         Category(
             id="550e8400-e29b-41d4-a716-446655440002",
@@ -73,6 +80,9 @@ def sample_categories() -> list[Category]:
             category_type=CategoryType.EXPENSE,
             parent_id=None,
             parent_name=None,
+            indentation=0,
+            group=True,
+            path="Lebenshaltung",
         ),
         Category(
             id="550e8400-e29b-41d4-a716-446655440003",
@@ -80,6 +90,10 @@ def sample_categories() -> list[Category]:
             category_type=CategoryType.EXPENSE,
             parent_id="550e8400-e29b-41d4-a716-446655440002",
             parent_name="Lebenshaltung",
+            indentation=1,
+            group=False,
+            rules='REWE OR Aldi',
+            path="Lebenshaltung\\Lebensmittel",
         ),
     ]
 
@@ -164,33 +178,47 @@ def sample_plist_accounts() -> list[dict]:
 
 @pytest.fixture
 def sample_plist_categories() -> list[dict]:
-    """Sample plist data as returned by MoneyMoney for categories."""
+    """Sample plist data as returned by MoneyMoney for categories.
+
+    MoneyMoney returns a flat list with 'indentation' levels and 'group'
+    flags instead of nested 'children' arrays.
+    """
     return [
         {
             "uuid": "550e8400-e29b-41d4-a716-446655440000",
             "name": "Einkommen",
             "type": 1,
-            "children": [
-                {
-                    "uuid": "550e8400-e29b-41d4-a716-446655440001",
-                    "name": "Gehalt",
-                    "type": 1,
-                    "children": [],
-                },
-            ],
+            "indentation": 0,
+            "group": True,
+            "rules": "",
+            "budget": {"amount": 0.0, "available": 0.0, "period": "monthly"},
+        },
+        {
+            "uuid": "550e8400-e29b-41d4-a716-446655440001",
+            "name": "Gehalt",
+            "type": 1,
+            "indentation": 1,
+            "group": False,
+            "rules": "(Gehalt AND name:Cognovis)",
+            "budget": {},
         },
         {
             "uuid": "550e8400-e29b-41d4-a716-446655440002",
             "name": "Lebenshaltung",
             "type": 0,
-            "children": [
-                {
-                    "uuid": "550e8400-e29b-41d4-a716-446655440003",
-                    "name": "Lebensmittel",
-                    "type": 0,
-                    "children": [],
-                },
-            ],
+            "indentation": 0,
+            "group": True,
+            "rules": "",
+            "budget": {},
+        },
+        {
+            "uuid": "550e8400-e29b-41d4-a716-446655440003",
+            "name": "Lebensmittel",
+            "type": 0,
+            "indentation": 1,
+            "group": False,
+            "rules": "REWE OR Aldi",
+            "budget": {},
         },
     ]
 

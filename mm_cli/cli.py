@@ -24,12 +24,14 @@ from mm_cli.output import (
     output_accounts,
     output_categories,
     output_category_usage,
+    output_suggestions,
     output_transactions,
     print_error,
     print_info,
     print_success,
     print_warning,
 )
+from mm_cli.rules import suggest_rules
 
 app = typer.Typer(
     name="mm",
@@ -138,7 +140,7 @@ def transactions(
 
         # Apply category filter
         if uncategorized:
-            txs = [tx for tx in txs if not tx.category_id]
+            txs = [tx for tx in txs if not tx.category_name]
         elif category:
             category_lower = category.lower()
             txs = [
@@ -348,6 +350,79 @@ def set_category(
         # Apply the change
         set_transaction_category(transaction_id, category_id)
         print_success(f"Transaction {transaction_id} category set to: {category_name}")
+
+    except Exception as e:
+        handle_applescript_error(e)
+
+
+@app.command("suggest-rules")
+def suggest_rules_cmd(
+    from_date: Annotated[
+        str | None,
+        typer.Option("--from", "-f", help="Start date for uncategorized scan (YYYY-MM-DD)"),
+    ] = None,
+    to_date: Annotated[
+        str | None,
+        typer.Option("--to", "-t", help="End date for uncategorized scan (YYYY-MM-DD)"),
+    ] = None,
+    history_months: Annotated[
+        int,
+        typer.Option("--history", "-H", help="Months of history to analyze for patterns"),
+    ] = 6,
+    format: Annotated[
+        OutputFormat,
+        typer.Option("--format", help="Output format"),
+    ] = OutputFormat.TABLE,
+) -> None:
+    """Suggest MoneyMoney rules based on uncategorized transactions.
+
+    Analyzes uncategorized transactions and compares against categorized
+    ones to suggest auto-categorization rules. Also checks existing rules
+    for coverage gaps.
+
+    Examples:
+        mm suggest-rules --from 2026-01-01 --to 2026-01-31
+        mm suggest-rules --history 12 --format json
+    """
+    try:
+        # Parse dates
+        start = parse_date(from_date) if from_date else None
+        end = parse_date(to_date) if to_date else None
+
+        # Get uncategorized transactions in the target range
+        target_txs = export_transactions(from_date=start, to_date=end)
+        uncategorized = [tx for tx in target_txs if not tx.category_name]
+
+        if not uncategorized:
+            print_warning("No uncategorized transactions found in the specified range.")
+            return
+
+        # Get historical categorized transactions for pattern matching
+        # Go back history_months from the earliest uncategorized date
+        from datetime import timedelta
+
+        earliest = min(tx.booking_date for tx in uncategorized)
+        history_start = earliest - timedelta(days=history_months * 30)
+
+        all_txs = export_transactions(from_date=history_start, to_date=end)
+        categorized = [tx for tx in all_txs if tx.category_name]
+
+        # Get categories with existing rules
+        cats = export_categories()
+
+        print_info(
+            f"Analyzing {len(uncategorized)} uncategorized transactions "
+            f"against {len(categorized)} categorized ones ({history_months}mo history)..."
+        )
+
+        # Run the analysis
+        suggestions = suggest_rules(uncategorized, categorized, cats)
+
+        if not suggestions:
+            print_warning("No rule suggestions could be generated.")
+            return
+
+        output_suggestions(suggestions, format)
 
     except Exception as e:
         handle_applescript_error(e)

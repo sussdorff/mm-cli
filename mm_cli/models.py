@@ -72,18 +72,27 @@ class Category:
     parent_name: str | None = None
     icon: str = ""
     budget: Decimal | None = None
+    indentation: int = 0
+    group: bool = False
+    rules: str = ""
+    path: str = ""
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
-        return {
+        result = {
             "id": self.id,
             "name": self.name,
             "category_type": self.category_type.value,
             "parent_id": self.parent_id,
             "parent_name": self.parent_name,
-            "icon": self.icon,
+            "path": self.path,
+            "indentation": self.indentation,
+            "group": self.group,
             "budget": str(self.budget) if self.budget else None,
         }
+        if self.rules:
+            result["rules"] = self.rules
+        return result
 
 
 @dataclass
