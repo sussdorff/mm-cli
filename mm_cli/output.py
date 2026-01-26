@@ -970,21 +970,31 @@ def output_balance_history(
                     format_currency(snap.change, "EUR"),
                 )
     else:
-        # Multiple accounts: pivot table
-        table = Table(title="Balance History", show_header=True, header_style="bold")
-        table.add_column("Month", style="cyan")
+        # Multiple accounts: one table per account
         for acc in accounts:
-            table.add_column(acc, justify="right")
+            acc_snapshots = [lookup.get((p, acc)) for p in periods]
+            if not any(acc_snapshots):
+                continue
+            table = Table(
+                title=f"Balance History: {acc}",
+                show_header=True,
+                header_style="bold",
+            )
+            table.add_column("Month", style="cyan")
+            table.add_column("Balance", justify="right")
+            table.add_column("Change", justify="right")
 
-        for period in periods:
-            row = [period]
-            for acc in accounts:
+            for period in periods:
                 snap = lookup.get((period, acc))
                 if snap:
-                    row.append(format_currency(snap.balance, "EUR"))
-                else:
-                    row.append("-")
-            table.add_row(*row)
+                    table.add_row(
+                        period,
+                        format_currency(snap.balance, "EUR"),
+                        format_currency(snap.change, "EUR"),
+                    )
+            console.print(table)
+            console.print()
+        return
 
     console.print(table)
 

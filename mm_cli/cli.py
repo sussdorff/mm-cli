@@ -1,7 +1,7 @@
 """Main CLI entrypoint for mm-cli."""
 
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated
 
@@ -167,6 +167,10 @@ def transactions(
         str | None,
         typer.Option("--to", "-t", help="End date (YYYY-MM-DD)"),
     ] = None,
+    days: Annotated[
+        int | None,
+        typer.Option("--days", "-d", help="Number of days to look back (default: 14)"),
+    ] = None,
     category: Annotated[
         str | None,
         typer.Option("--category", "-c", help="Filter by category name"),
@@ -200,7 +204,11 @@ def transactions(
         typer.Option("--format", help="Output format"),
     ] = OutputFormat.TABLE,
 ) -> None:
-    """List transactions with optional filtering."""
+    """List transactions with optional filtering.
+
+    Defaults to the last 14 days if no date range is specified.
+    Use --days to change the lookback period, or --from/--to for exact dates.
+    """
     # Validate --sort value
     if sort is not None and sort not in ("date", "amount", "name"):
         print_error(f"Invalid sort field: {sort}. Use 'date', 'amount', or 'name'.")
@@ -211,10 +219,22 @@ def transactions(
         print_error(f"Invalid checkmark value: {checkmark}. Use 'on' or 'off'.")
         raise typer.Exit(1)
 
+    if days is not None and (from_date or to_date):
+        print_error("Cannot use --days together with --from/--to.")
+        raise typer.Exit(1)
+
     try:
         # Parse dates if provided
         start = parse_date(from_date) if from_date else None
         end = parse_date(to_date) if to_date else None
+
+        # Apply --days shorthand (or default to 14 days when no dates given)
+        if days is not None:
+            start = date.today() - timedelta(days=days)
+            end = date.today()
+        elif start is None and end is None:
+            start = date.today() - timedelta(days=14)
+            end = date.today()
 
         # Export transactions
         txs = export_transactions(

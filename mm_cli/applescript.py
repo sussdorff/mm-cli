@@ -572,10 +572,10 @@ def export_portfolio(account_id: str | None = None) -> list[Portfolio]:
     if account_id:
         script = (
             f'tell application "MoneyMoney" to export portfolio '
-            f'of account id "{account_id}"'
+            f'of account id "{account_id}" as "plist"'
         )
     else:
-        script = 'tell application "MoneyMoney" to export portfolio'
+        script = 'tell application "MoneyMoney" to export portfolio as "plist"'
 
     data = _run_export_script(script)
 

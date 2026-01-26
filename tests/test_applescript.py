@@ -375,7 +375,7 @@ class TestExportPortfolio:
         export_portfolio(account_id="test-uuid")
 
         call_args = mock_export.call_args[0][0]
-        assert 'export portfolio of account id "test-uuid"' in call_args
+        assert 'export portfolio of account id "test-uuid" as "plist"' in call_args
 
     @patch("mm_cli.applescript._run_export_script")
     def test_export_portfolio_without_account_id(self, mock_export: MagicMock) -> None:
@@ -385,7 +385,7 @@ class TestExportPortfolio:
         export_portfolio()
 
         call_args = mock_export.call_args[0][0]
-        assert call_args == 'tell application "MoneyMoney" to export portfolio'
+        assert call_args == 'tell application "MoneyMoney" to export portfolio as "plist"'
 
     @patch("mm_cli.applescript._run_export_script")
     def test_export_portfolio_empty_securities(self, mock_export: MagicMock) -> None:
