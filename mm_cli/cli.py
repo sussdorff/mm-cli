@@ -15,6 +15,7 @@ from mm_cli.analysis import (
     compute_spending,
     compute_top_customers,
     detect_recurring,
+    extract_transfers,
     filter_transfers,
     get_previous_period,
     get_transfer_category_ids,
@@ -838,6 +839,13 @@ def analyze_spending(
             help="Include internal transfers (Umbuchungen)",
         ),
     ] = False,
+    transfers_only: Annotated[
+        bool,
+        typer.Option(
+            "--transfers-only",
+            help="Show only internal transfers (Umbuchungen)",
+        ),
+    ] = False,
     format: Annotated[
         OutputFormat,
         typer.Option("--format", help="Output format"),
@@ -856,6 +864,10 @@ def analyze_spending(
         mm analyze spending --type expense --group Privat
         mm analyze spending --from 2026-01-01 --to 2026-01-31
     """
+    if transfers_only and include_transfers:
+        print_error("--transfers-only and --include-transfers are mutually exclusive.")
+        raise typer.Exit(1)
+
     try:
         # Resolve date range
         if from_date or to_date:
@@ -868,7 +880,7 @@ def analyze_spending(
         # Load accounts for group filtering and IBAN-based transfer detection
         all_accounts = None
         account_ids: set[str] | None = None
-        if group or not include_transfers:
+        if group or not include_transfers or transfers_only:
             all_accounts = export_accounts()
         if group and all_accounts:
             group_lower = [g.lower() for g in group]
@@ -901,8 +913,11 @@ def analyze_spending(
         # Load categories for budget info and transfer filtering
         cats = export_categories()
 
-        # Filter out internal transfers (Umbuchungen) unless opted in
-        if not include_transfers:
+        # Filter transfers based on mode
+        if transfers_only:
+            transfer_ids = get_transfer_category_ids(cats)
+            txs = extract_transfers(txs, transfer_ids, accounts=all_accounts)
+        elif not include_transfers:
             transfer_ids = get_transfer_category_ids(cats)
             txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
 
@@ -922,7 +937,11 @@ def analyze_spending(
             )
             if account_ids is not None:
                 compare_txs = [tx for tx in compare_txs if tx.account_id in account_ids]
-            if not include_transfers:
+            if transfers_only:
+                compare_txs = extract_transfers(
+                    compare_txs, transfer_ids, accounts=all_accounts,
+                )
+            elif not include_transfers:
                 compare_txs = filter_transfers(
                     compare_txs, transfer_ids,
                     accounts=all_accounts, active_groups=group,
@@ -971,6 +990,13 @@ def analyze_cashflow(
             help="Include internal transfers (Umbuchungen)",
         ),
     ] = False,
+    transfers_only: Annotated[
+        bool,
+        typer.Option(
+            "--transfers-only",
+            help="Show only internal transfers (Umbuchungen)",
+        ),
+    ] = False,
     format: Annotated[
         OutputFormat,
         typer.Option("--format", help="Output format"),
@@ -986,11 +1012,15 @@ def analyze_cashflow(
         mm analyze cashflow --months 12 --period quarterly
         mm analyze cashflow --group Privat
     """
+    if transfers_only and include_transfers:
+        print_error("--transfers-only and --include-transfers are mutually exclusive.")
+        raise typer.Exit(1)
+
     try:
         # Load accounts for group filtering and IBAN-based transfer detection
         all_accounts = None
         account_ids: set[str] | None = None
-        if group or not include_transfers:
+        if group or not include_transfers or transfers_only:
             all_accounts = export_accounts()
         if group and all_accounts:
             group_lower = [g.lower() for g in group]
@@ -1011,8 +1041,12 @@ def analyze_cashflow(
         if account_ids is not None:
             txs = [tx for tx in txs if tx.account_id in account_ids]
 
-        # Filter out internal transfers
-        if not include_transfers:
+        # Filter transfers based on mode
+        if transfers_only:
+            cats = export_categories()
+            transfer_ids = get_transfer_category_ids(cats)
+            txs = extract_transfers(txs, transfer_ids, accounts=all_accounts)
+        elif not include_transfers:
             cats = export_categories()
             transfer_ids = get_transfer_category_ids(cats)
             txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
@@ -1054,6 +1088,13 @@ def analyze_recurring(
             help="Include internal transfers (Umbuchungen)",
         ),
     ] = False,
+    transfers_only: Annotated[
+        bool,
+        typer.Option(
+            "--transfers-only",
+            help="Show only internal transfers (Umbuchungen)",
+        ),
+    ] = False,
     format: Annotated[
         OutputFormat,
         typer.Option("--format", help="Output format"),
@@ -1069,10 +1110,14 @@ def analyze_recurring(
         mm analyze recurring --months 6 --min-occurrences 4
         mm analyze recurring --group Privat
     """
+    if transfers_only and include_transfers:
+        print_error("--transfers-only and --include-transfers are mutually exclusive.")
+        raise typer.Exit(1)
+
     try:
         all_accounts = None
         account_ids: set[str] | None = None
-        if group or not include_transfers:
+        if group or not include_transfers or transfers_only:
             all_accounts = export_accounts()
         if group and all_accounts:
             group_lower = [g.lower() for g in group]
@@ -1092,8 +1137,12 @@ def analyze_recurring(
         if account_ids is not None:
             txs = [tx for tx in txs if tx.account_id in account_ids]
 
-        # Filter out internal transfers
-        if not include_transfers:
+        # Filter transfers based on mode
+        if transfers_only:
+            cats = export_categories()
+            transfer_ids = get_transfer_category_ids(cats)
+            txs = extract_transfers(txs, transfer_ids, accounts=all_accounts)
+        elif not include_transfers:
             cats = export_categories()
             transfer_ids = get_transfer_category_ids(cats)
             txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
@@ -1150,6 +1199,13 @@ def analyze_merchants(
             help="Include internal transfers (Umbuchungen)",
         ),
     ] = False,
+    transfers_only: Annotated[
+        bool,
+        typer.Option(
+            "--transfers-only",
+            help="Show only internal transfers (Umbuchungen)",
+        ),
+    ] = False,
     format: Annotated[
         OutputFormat,
         typer.Option("--format", help="Output format"),
@@ -1166,6 +1222,10 @@ def analyze_merchants(
         mm analyze merchants --type all
         mm analyze merchants --from 2026-01-01 --to 2026-01-31
     """
+    if transfers_only and include_transfers:
+        print_error("--transfers-only and --include-transfers are mutually exclusive.")
+        raise typer.Exit(1)
+
     try:
         if from_date or to_date:
             start = parse_date(from_date) if from_date else None
@@ -1175,7 +1235,7 @@ def analyze_merchants(
 
         all_accounts = None
         account_ids: set[str] | None = None
-        if group or not include_transfers:
+        if group or not include_transfers or transfers_only:
             all_accounts = export_accounts()
         if group and all_accounts:
             group_lower = [g.lower() for g in group]
@@ -1191,8 +1251,12 @@ def analyze_merchants(
         if account_ids is not None:
             txs = [tx for tx in txs if tx.account_id in account_ids]
 
-        # Filter out internal transfers
-        if not include_transfers:
+        # Filter transfers based on mode
+        if transfers_only:
+            cats = export_categories()
+            transfer_ids = get_transfer_category_ids(cats)
+            txs = extract_transfers(txs, transfer_ids, accounts=all_accounts)
+        elif not include_transfers:
             cats = export_categories()
             transfer_ids = get_transfer_category_ids(cats)
             txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
@@ -1252,6 +1316,13 @@ def analyze_top_customers(
             help="Include internal transfers (Umbuchungen)",
         ),
     ] = False,
+    transfers_only: Annotated[
+        bool,
+        typer.Option(
+            "--transfers-only",
+            help="Show only internal transfers (Umbuchungen)",
+        ),
+    ] = False,
     format: Annotated[
         OutputFormat,
         typer.Option("--format", help="Output format"),
@@ -1267,6 +1338,10 @@ def analyze_top_customers(
         mm analyze top-customers --period this-year --limit 10
         mm analyze top-customers --group cognovis
     """
+    if transfers_only and include_transfers:
+        print_error("--transfers-only and --include-transfers are mutually exclusive.")
+        raise typer.Exit(1)
+
     try:
         if from_date or to_date:
             start = parse_date(from_date) if from_date else None
@@ -1276,7 +1351,7 @@ def analyze_top_customers(
 
         all_accounts = None
         account_ids: set[str] | None = None
-        if group or not include_transfers:
+        if group or not include_transfers or transfers_only:
             all_accounts = export_accounts()
         if group and all_accounts:
             group_lower = [g.lower() for g in group]
@@ -1292,8 +1367,12 @@ def analyze_top_customers(
         if account_ids is not None:
             txs = [tx for tx in txs if tx.account_id in account_ids]
 
-        # Filter out internal transfers
-        if not include_transfers:
+        # Filter transfers based on mode
+        if transfers_only:
+            cats = export_categories()
+            transfer_ids = get_transfer_category_ids(cats)
+            txs = extract_transfers(txs, transfer_ids, accounts=all_accounts)
+        elif not include_transfers:
             cats = export_categories()
             transfer_ids = get_transfer_category_ids(cats)
             txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)

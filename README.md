@@ -54,7 +54,7 @@ mm transactions --checkmark off            # only unchecked
 
 ### Analyze your finances
 
-All analysis commands filter out internal transfers (Umbuchungen) by default — both by IBAN matching against your own accounts and by MoneyMoney's transfer category tree. When using `--group`, cross-group transfers (e.g. salary from your company account to your personal account) are kept as real cashflow. Use `--include-transfers` to disable filtering.
+All analysis commands filter out internal transfers (Umbuchungen) by default — both by IBAN matching against your own accounts and by MoneyMoney's transfer category tree. When using `--group`, cross-group transfers (e.g. salary from your company account to your personal account) are kept as real cashflow. Use `--include-transfers` to disable filtering, or `--transfers-only` to show *only* the transfers (useful for reviewing own-account movements like credit card settlements or savings transfers).
 
 **Spending by category** — see where your money goes, with budget tracking:
 

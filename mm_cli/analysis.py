@@ -112,6 +112,40 @@ def filter_transfers(
     return result
 
 
+def extract_transfers(
+    transactions: list[Transaction],
+    transfer_category_ids: set[str],
+    accounts: list[Account] | None = None,
+) -> list[Transaction]:
+    """Return only transactions that are internal transfers.
+
+    This is the complement of filter_transfers() — it keeps what
+    filter_transfers() would remove, without the cross-group exception
+    logic (since the caller explicitly wants to see all transfers).
+
+    Uses two detection methods:
+    1. IBAN-based: if counterparty_iban matches one of our own accounts.
+    2. Category-based fallback: if category_id is in transfer_category_ids.
+    """
+    if accounts is not None:
+        own_ibans = build_own_iban_set(accounts)
+    else:
+        own_ibans = set()
+
+    result: list[Transaction] = []
+    for tx in transactions:
+        # IBAN-based detection
+        if accounts is not None and tx.counterparty_iban and tx.counterparty_iban in own_ibans:
+            result.append(tx)
+            continue
+
+        # Category-based fallback
+        if tx.category_id in transfer_category_ids:
+            result.append(tx)
+
+    return result
+
+
 def resolve_period(period_name: str) -> tuple[date, date, str]:
     """Convert a named period to a date range and display label.
 

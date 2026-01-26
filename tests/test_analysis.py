@@ -13,6 +13,7 @@ from mm_cli.analysis import (
     compute_spending,
     compute_top_customers,
     detect_recurring,
+    extract_transfers,
     filter_transfers,
     get_previous_period,
     get_transfer_category_ids,
@@ -792,3 +793,180 @@ class TestIBANTransferDetection:
         assert "Netflix" in names
         assert "Umbuchung" not in names
         assert "Amex" not in names
+
+
+class TestExtractTransfers:
+    """Tests for extract_transfers()."""
+
+    def test_extract_returns_category_based_transfers(self, multi_group_accounts) -> None:
+        """Transactions with a transfer category should be extracted."""
+        transfer_ids = {"cat-kk-abrechnung"}
+        txs = [
+            Transaction(
+                id="1", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 20),
+                value_date=date(2025, 1, 20),
+                amount=Decimal("-500.00"),
+                currency="EUR", name="Amex",
+                purpose="KK Abrechnung",
+                category_id="cat-kk-abrechnung",
+                counterparty_iban="",
+            ),
+            Transaction(
+                id="2", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 5),
+                value_date=date(2025, 1, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR", name="REWE",
+                purpose="Einkauf",
+                category_id="cat-food",
+            ),
+        ]
+        result = extract_transfers(txs, transfer_ids, accounts=multi_group_accounts)
+        assert len(result) == 1
+        assert result[0].name == "Amex"
+
+    def test_extract_returns_iban_based_transfers(self, multi_group_accounts) -> None:
+        """Transactions whose counterparty IBAN matches own accounts should be extracted."""
+        txs = [
+            Transaction(
+                id="1", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 5),
+                value_date=date(2025, 1, 5),
+                amount=Decimal("-1000.00"),
+                currency="EUR", name="Umbuchung",
+                purpose="Spareinlage",
+                counterparty_iban="DE27100777770209299700",  # Privat Tagesgeld
+            ),
+            Transaction(
+                id="2", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 10),
+                value_date=date(2025, 1, 10),
+                amount=Decimal("-45.00"),
+                currency="EUR", name="REWE",
+                purpose="Einkauf",
+                counterparty_iban="DE12345678901234567890",  # external
+            ),
+        ]
+        result = extract_transfers(txs, set(), accounts=multi_group_accounts)
+        assert len(result) == 1
+        assert result[0].name == "Umbuchung"
+
+    def test_extract_includes_cross_group_transfers(self, multi_group_accounts) -> None:
+        """Cross-group transfers ARE included (no group exception in extract)."""
+        txs = [
+            # Cross-group transfer (cognovis -> Privat salary)
+            Transaction(
+                id="1", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 28),
+                value_date=date(2025, 1, 28),
+                amount=Decimal("3500.00"),
+                currency="EUR", name="cognovis GmbH",
+                purpose="Gehalt",
+                counterparty_iban="DE55370400440999888777",  # cognovis account
+            ),
+            # Same-group transfer
+            Transaction(
+                id="2", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 5),
+                value_date=date(2025, 1, 5),
+                amount=Decimal("-1000.00"),
+                currency="EUR", name="Umbuchung",
+                purpose="Spareinlage",
+                counterparty_iban="DE27100777770209299700",  # Privat Tagesgeld
+            ),
+        ]
+        result = extract_transfers(txs, set(), accounts=multi_group_accounts)
+        # Both are own-account transfers, both should be extracted
+        assert len(result) == 2
+        names = {tx.name for tx in result}
+        assert "cognovis GmbH" in names
+        assert "Umbuchung" in names
+
+    def test_extract_excludes_external_transactions(self, multi_group_accounts) -> None:
+        """External transactions should not be returned."""
+        txs = [
+            Transaction(
+                id="1", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 5),
+                value_date=date(2025, 1, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR", name="REWE",
+                purpose="Einkauf",
+                counterparty_iban="DE12345678901234567890",  # external
+                category_id="cat-food",
+            ),
+            Transaction(
+                id="2", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 15),
+                value_date=date(2025, 1, 15),
+                amount=Decimal("-12.99"),
+                currency="EUR", name="Netflix",
+                purpose="Streaming",
+                category_id="cat-streaming",
+            ),
+        ]
+        result = extract_transfers(txs, set(), accounts=multi_group_accounts)
+        assert len(result) == 0
+
+    def test_extract_complement_of_filter(self, multi_group_accounts) -> None:
+        """Without cross-group logic, extract + filter covers all transactions."""
+        transfer_ids = {"cat-kk-abrechnung"}
+        txs = [
+            # IBAN-based own-account transfer
+            Transaction(
+                id="1", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 5),
+                value_date=date(2025, 1, 5),
+                amount=Decimal("-1000.00"),
+                currency="EUR", name="Umbuchung",
+                purpose="Spareinlage",
+                counterparty_iban="DE27100777770209299700",
+            ),
+            # Category-based transfer (no IBAN)
+            Transaction(
+                id="2", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 20),
+                value_date=date(2025, 1, 20),
+                amount=Decimal("-500.00"),
+                currency="EUR", name="Amex",
+                purpose="KK Abrechnung",
+                category_id="cat-kk-abrechnung",
+                counterparty_iban="",
+            ),
+            # External purchase
+            Transaction(
+                id="3", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 10),
+                value_date=date(2025, 1, 10),
+                amount=Decimal("-45.00"),
+                currency="EUR", name="REWE",
+                purpose="Einkauf",
+                counterparty_iban="DE12345678901234567890",
+                category_id="cat-food",
+            ),
+            # Normal expense (no IBAN, no transfer category)
+            Transaction(
+                id="4", account_id="uuid-privat-giro",
+                booking_date=date(2025, 1, 15),
+                value_date=date(2025, 1, 15),
+                amount=Decimal("-12.99"),
+                currency="EUR", name="Netflix",
+                purpose="Streaming",
+                category_id="cat-streaming",
+            ),
+        ]
+        extracted = extract_transfers(txs, transfer_ids, accounts=multi_group_accounts)
+        # filter_transfers without active_groups doesn't have cross-group exception
+        filtered = filter_transfers(
+            txs, transfer_ids,
+            accounts=multi_group_accounts,
+            active_groups=None,
+        )
+        # Together they should cover all transactions
+        extracted_ids = {tx.id for tx in extracted}
+        filtered_ids = {tx.id for tx in filtered}
+        all_ids = {tx.id for tx in txs}
+        assert extracted_ids | filtered_ids == all_ids
+        # And they should not overlap
+        assert extracted_ids & filtered_ids == set()
