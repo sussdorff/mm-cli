@@ -147,15 +147,33 @@ class TestExportFunctions:
     def test_export_accounts(
         self, mock_export: MagicMock, sample_plist_accounts: list[dict]
     ) -> None:
-        """Test export_accounts parsing."""
+        """Test export_accounts parsing with group tracking."""
         mock_export.return_value = sample_plist_accounts
 
         accounts = export_accounts()
 
-        assert len(accounts) == 1
+        # 3 actual accounts (groups are not included as accounts)
+        assert len(accounts) == 3
         assert accounts[0].name == "Girokonto"
         assert accounts[0].balance == Decimal("1234.56")
         assert accounts[0].account_type == AccountType.CHECKING
+        assert accounts[0].group == "Hauptkonten"
+
+        assert accounts[1].name == "Tagesgeld"
+        assert accounts[1].group == "Sparkonten"
+
+        assert accounts[2].name == "Altes Konto"
+        assert accounts[2].group == "Aufgelöst"
+
+    @patch("mm_cli.applescript._run_export_script")
+    def test_export_accounts_group_is_string(
+        self, mock_export: MagicMock, sample_plist_accounts: list[dict]
+    ) -> None:
+        """Test that account group field is a string, not a boolean."""
+        mock_export.return_value = sample_plist_accounts
+        accounts = export_accounts()
+        for acc in accounts:
+            assert isinstance(acc.group, str)
 
     @patch("mm_cli.applescript._run_export_script")
     def test_export_categories(
@@ -171,6 +189,25 @@ class TestExportFunctions:
         expense_cats = [c for c in categories if c.category_type == CategoryType.EXPENSE]
         assert len(income_cats) == 2
         assert len(expense_cats) == 2
+
+    @patch("mm_cli.applescript._run_export_script")
+    def test_export_categories_budget_parsing(
+        self, mock_export: MagicMock, sample_plist_categories: list[dict]
+    ) -> None:
+        """Test budget period and available fields are parsed from plist."""
+        mock_export.return_value = sample_plist_categories
+
+        categories = export_categories()
+
+        # Lebensmittel has budget data
+        lebensmittel = [c for c in categories if c.name == "Lebensmittel"][0]
+        assert lebensmittel.budget == Decimal("500.0")
+        assert lebensmittel.budget_period == "monthly"
+        assert lebensmittel.budget_available == Decimal("50.0")
+
+        # Einkommen group has zero budget
+        einkommen = [c for c in categories if c.name == "Einkommen"][0]
+        assert einkommen.budget_period == "monthly"
 
     @patch("mm_cli.applescript._run_export_script")
     def test_export_transactions(

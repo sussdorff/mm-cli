@@ -8,6 +8,7 @@ from typing import Annotated
 import typer
 
 from mm_cli import __version__
+from mm_cli.analysis import compute_spending, get_previous_period, resolve_period
 from mm_cli.applescript import (
     EXPORT_FORMATS,
     AppleScriptError,
@@ -24,6 +25,7 @@ from mm_cli.output import (
     output_accounts,
     output_categories,
     output_category_usage,
+    output_spending,
     output_suggestions,
     output_transactions,
     print_error,
@@ -74,11 +76,37 @@ def accounts(
         OutputFormat,
         typer.Option("--format", "-f", help="Output format"),
     ] = OutputFormat.TABLE,
+    hierarchy: Annotated[
+        bool,
+        typer.Option("--hierarchy", help="Grouped display with section headers and subtotals"),
+    ] = False,
+    active: Annotated[
+        bool,
+        typer.Option("--active", help="Only active accounts (exclude 'Aufgelöst' group)"),
+    ] = False,
+    group: Annotated[
+        list[str] | None,
+        typer.Option("--group", "-g", help="Filter by account group (repeatable)"),
+    ] = None,
 ) -> None:
     """List all accounts from MoneyMoney."""
     try:
         accs = export_accounts()
-        output_accounts(accs, format)
+
+        # Filter by active (exclude "Aufgelöst" group)
+        if active:
+            accs = [a for a in accs if a.group.lower() != "aufgelöst"]
+
+        # Filter by group name(s)
+        if group:
+            group_lower = [g.lower() for g in group]
+            accs = [a for a in accs if a.group.lower() in group_lower]
+
+        if not accs:
+            print_warning("No accounts found matching the criteria.")
+            return
+
+        output_accounts(accs, format, hierarchy=hierarchy)
     except Exception as e:
         handle_applescript_error(e)
 
@@ -424,6 +452,138 @@ def suggest_rules_cmd(
 
         output_suggestions(suggestions, format)
 
+    except Exception as e:
+        handle_applescript_error(e)
+
+
+analyze_app = typer.Typer(name="analyze", help="Analyze financial data")
+app.add_typer(analyze_app)
+
+
+@analyze_app.command("spending")
+def analyze_spending(
+    period: Annotated[
+        str,
+        typer.Option(
+            "--period", "-p",
+            help="Period: this-month, last-month, this-quarter, last-quarter, this-year",
+        ),
+    ] = "this-month",
+    from_date: Annotated[
+        str | None,
+        typer.Option("--from", "-f", help="Override start date (YYYY-MM-DD)"),
+    ] = None,
+    to_date: Annotated[
+        str | None,
+        typer.Option("--to", "-t", help="Override end date (YYYY-MM-DD)"),
+    ] = None,
+    compare: Annotated[
+        bool,
+        typer.Option("--compare", "-c", help="Compare with previous period"),
+    ] = False,
+    account: Annotated[
+        str | None,
+        typer.Option("--account", "-a", help="Filter by account ID or IBAN"),
+    ] = None,
+    group: Annotated[
+        list[str] | None,
+        typer.Option("--group", "-g", help="Filter by account group (repeatable)"),
+    ] = None,
+    type_filter: Annotated[
+        str | None,
+        typer.Option("--type", help="Filter: income or expense"),
+    ] = None,
+    format: Annotated[
+        OutputFormat,
+        typer.Option("--format", help="Output format"),
+    ] = OutputFormat.TABLE,
+) -> None:
+    """Analyze spending by category with optional budget comparison.
+
+    Shows spending per category, optionally compared against budgets
+    and/or the previous period.
+
+    Examples:
+        mm analyze spending
+        mm analyze spending --period last-month
+        mm analyze spending --compare
+        mm analyze spending --type expense --group Privat
+        mm analyze spending --from 2026-01-01 --to 2026-01-31
+    """
+    try:
+        # Resolve date range
+        if from_date or to_date:
+            start = parse_date(from_date) if from_date else None
+            end = parse_date(to_date) if to_date else None
+            label = f"{start or '...'} to {end or '...'}"
+        else:
+            start, end, label = resolve_period(period)
+
+        # Load accounts for group filtering
+        account_ids: set[str] | None = None
+        if group:
+            accs = export_accounts()
+            group_lower = [g.lower() for g in group]
+            filtered_accs = [a for a in accs if a.group.lower() in group_lower]
+            account_ids = {a.id for a in filtered_accs} | {a.iban for a in filtered_accs if a.iban}
+
+        # Load transactions
+        txs = export_transactions(
+            account_id=account,
+            from_date=start,
+            to_date=end,
+        )
+
+        # Apply group filter
+        if account_ids is not None:
+            txs = [tx for tx in txs if tx.account_id in account_ids]
+
+        # Apply type filter
+        if type_filter:
+            tf = type_filter.lower()
+            if tf == "expense":
+                txs = [tx for tx in txs if tx.amount < 0]
+            elif tf == "income":
+                txs = [tx for tx in txs if tx.amount > 0]
+
+        if not txs:
+            print_warning("No transactions found for the specified period.")
+            return
+
+        # Load categories for budget info
+        cats = export_categories()
+
+        # Comparison period
+        compare_txs = None
+        compare_label = None
+        if compare and start and end:
+            prev_start, prev_end, compare_label = get_previous_period(start, end)
+            compare_txs = export_transactions(
+                account_id=account,
+                from_date=prev_start,
+                to_date=prev_end,
+            )
+            if account_ids is not None:
+                compare_txs = [tx for tx in compare_txs if tx.account_id in account_ids]
+            if type_filter:
+                tf = type_filter.lower()
+                if tf == "expense":
+                    compare_txs = [tx for tx in compare_txs if tx.amount < 0]
+                elif tf == "income":
+                    compare_txs = [tx for tx in compare_txs if tx.amount > 0]
+
+        # Run analysis
+        results = compute_spending(txs, cats, compare_txs)
+
+        if not results:
+            print_warning("No spending data to analyze.")
+            return
+
+        output_spending(results, label, format, compare_label=compare_label)
+
+    except ValueError as e:
+        print_error(str(e))
+        raise typer.Exit(1) from e
     except Exception as e:
         handle_applescript_error(e)
 

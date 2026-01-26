@@ -10,7 +10,7 @@ from typing import Any
 from rich.console import Console
 from rich.table import Table
 
-from mm_cli.models import Account, Category, CategoryUsage, Transaction
+from mm_cli.models import Account, Category, CategoryUsage, SpendingAnalysis, Transaction
 from mm_cli.rules import RuleSuggestion
 
 import sys as _sys
@@ -60,12 +60,17 @@ def format_currency(amount: Decimal, currency: str = "EUR") -> str:
     return f"{formatted} {symbol}"
 
 
-def output_accounts(accounts: list[Account], format: OutputFormat = OutputFormat.TABLE) -> None:
+def output_accounts(
+    accounts: list[Account],
+    format: OutputFormat = OutputFormat.TABLE,
+    hierarchy: bool = False,
+) -> None:
     """Output accounts in the specified format.
 
     Args:
         accounts: List of accounts to output.
         format: Output format.
+        hierarchy: If True, show grouped display with section headers and subtotals.
     """
     if format == OutputFormat.JSON:
         data = [acc.to_dict() for acc in accounts]
@@ -76,7 +81,9 @@ def output_accounts(accounts: list[Account], format: OutputFormat = OutputFormat
         output = io.StringIO()
         writer = csv.DictWriter(
             output,
-            fieldnames=["id", "name", "bank_name", "balance", "currency", "account_type", "iban"],
+            fieldnames=[
+                "id", "name", "group", "bank_name", "balance", "currency", "account_type", "iban",
+            ],
         )
         writer.writeheader()
         for acc in accounts:
@@ -84,6 +91,7 @@ def output_accounts(accounts: list[Account], format: OutputFormat = OutputFormat
                 {
                     "id": acc.id,
                     "name": acc.name,
+                    "group": acc.group,
                     "bank_name": acc.bank_name,
                     "balance": str(acc.balance),
                     "currency": acc.currency,
@@ -94,9 +102,21 @@ def output_accounts(accounts: list[Account], format: OutputFormat = OutputFormat
         console.print(output.getvalue())
         return
 
-    # Table format (default)
+    if hierarchy:
+        _output_accounts_hierarchy(accounts)
+    else:
+        _output_accounts_flat(accounts)
+
+    # Print total
+    total = sum(acc.balance for acc in accounts if acc.currency == "EUR")
+    console.print(f"\n[bold]Total (EUR):[/bold] {format_currency(total, 'EUR')}")
+
+
+def _output_accounts_flat(accounts: list[Account]) -> None:
+    """Output accounts as a flat table with Group column."""
     table = Table(title="Accounts", show_header=True, header_style="bold")
     table.add_column("Name", style="cyan")
+    table.add_column("Group", style="dim")
     table.add_column("Bank", style="dim")
     table.add_column("Type")
     table.add_column("Balance", justify="right")
@@ -105,6 +125,7 @@ def output_accounts(accounts: list[Account], format: OutputFormat = OutputFormat
     for acc in accounts:
         table.add_row(
             acc.name,
+            acc.group or "-",
             acc.bank_name,
             acc.account_type.value,
             format_currency(acc.balance, acc.currency),
@@ -113,9 +134,55 @@ def output_accounts(accounts: list[Account], format: OutputFormat = OutputFormat
 
     console.print(table)
 
-    # Print total
-    total = sum(acc.balance for acc in accounts if acc.currency == "EUR")
-    console.print(f"\n[bold]Total (EUR):[/bold] {format_currency(total, 'EUR')}")
+
+def _output_accounts_hierarchy(accounts: list[Account]) -> None:
+    """Output accounts grouped by section with headers and subtotals."""
+    from collections import OrderedDict
+    from decimal import Decimal
+
+    # Group accounts by their group name, preserving order
+    groups: OrderedDict[str, list[Account]] = OrderedDict()
+    for acc in accounts:
+        key = acc.group or "(Ungrouped)"
+        groups.setdefault(key, []).append(acc)
+
+    table = Table(title="Accounts", show_header=True, header_style="bold")
+    table.add_column("Name", style="cyan", min_width=25)
+    table.add_column("Bank", style="dim")
+    table.add_column("Type")
+    table.add_column("Balance", justify="right")
+    table.add_column("IBAN", style="dim")
+
+    for group_name, group_accounts in groups.items():
+        # Section header
+        table.add_row(
+            f"[bold]{group_name}[/bold]",
+            "", "", "", "",
+            style="on grey15",
+        )
+
+        for acc in group_accounts:
+            table.add_row(
+                f"  {acc.name}",
+                acc.bank_name,
+                acc.account_type.value,
+                format_currency(acc.balance, acc.currency),
+                acc.iban or "-",
+            )
+
+        # Subtotal for group
+        group_total = sum(
+            a.balance for a in group_accounts if a.currency == "EUR"
+        )
+        table.add_row(
+            f"  [dim]Subtotal[/dim]",
+            "", "",
+            f"[bold]{format_currency(group_total, 'EUR')}[/bold]",
+            "",
+            style="dim",
+        )
+
+    console.print(table)
 
 
 def output_categories(
@@ -436,6 +503,153 @@ def output_suggestions(
         console.print(f"  Already covered by rules (not applied?): {covered}")
     console.print(f"  Matchable with new rules: {new_matchable}")
     console.print(f"  Need manual categorization: {needs_manual}")
+
+
+def output_spending(
+    results: list[SpendingAnalysis],
+    period_label: str,
+    format: OutputFormat = OutputFormat.TABLE,
+    compare_label: str | None = None,
+) -> None:
+    """Output spending analysis in the specified format.
+
+    Args:
+        results: List of spending analysis results.
+        period_label: Display label for the period (e.g. "January 2026").
+        format: Output format.
+        compare_label: Optional label for comparison period.
+    """
+    if format == OutputFormat.JSON:
+        data = [r.to_dict() for r in results]
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        return
+
+    if format == OutputFormat.CSV:
+        output = io.StringIO()
+        fieldnames = [
+            "category_name", "category_path", "category_type",
+            "actual", "budget", "budget_period", "remaining",
+            "percent_used", "transaction_count",
+        ]
+        if any(r.compare_actual is not None for r in results):
+            fieldnames.extend(["compare_actual", "compare_change"])
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        for r in results:
+            row = {
+                "category_name": r.category_name,
+                "category_path": r.category_path,
+                "category_type": r.category_type.value,
+                "actual": str(r.actual),
+                "budget": str(r.budget) if r.budget is not None else "",
+                "budget_period": r.budget_period,
+                "remaining": str(r.remaining) if r.remaining is not None else "",
+                "percent_used": str(r.percent_used) if r.percent_used is not None else "",
+                "transaction_count": r.transaction_count,
+            }
+            if "compare_actual" in fieldnames:
+                row["compare_actual"] = str(r.compare_actual) if r.compare_actual is not None else ""
+                row["compare_change"] = str(r.compare_change) if r.compare_change is not None else ""
+            writer.writerow(row)
+        console.print(output.getvalue())
+        return
+
+    # Table format
+    has_budget = any(r.budget is not None for r in results)
+    has_compare = any(r.compare_actual is not None for r in results)
+
+    table = Table(
+        title=f"Spending Analysis: {period_label}",
+        show_header=True,
+        header_style="bold",
+    )
+    table.add_column("Category", style="cyan", min_width=20)
+    table.add_column("Actual", justify="right")
+    table.add_column("#", justify="right", style="dim")
+
+    if has_budget:
+        table.add_column("Budget", justify="right")
+        table.add_column("Remaining", justify="right")
+        table.add_column("Used%", justify="right")
+
+    if has_compare:
+        compare_header = f"vs. {compare_label}" if compare_label else "vs. Prev"
+        table.add_column(compare_header, justify="right")
+
+    for r in results:
+        row = [
+            r.category_name,
+            format_currency(r.actual, "EUR"),
+            str(r.transaction_count),
+        ]
+
+        if has_budget:
+            if r.budget is not None:
+                row.append(format_currency(r.budget, "EUR"))
+                # Color remaining
+                if r.remaining is not None:
+                    if r.remaining < 0:
+                        row.append(f"[red]{r.remaining:,.2f} EUR[/red]")
+                    else:
+                        row.append(f"[green]{r.remaining:,.2f} EUR[/green]")
+                else:
+                    row.append("-")
+                # Color percent used
+                if r.percent_used is not None:
+                    pct = float(r.percent_used)
+                    if pct > 100:
+                        row.append(f"[bold red]{r.percent_used}%[/bold red]")
+                    elif pct > 80:
+                        row.append(f"[yellow]{r.percent_used}%[/yellow]")
+                    else:
+                        row.append(f"[green]{r.percent_used}%[/green]")
+                else:
+                    row.append("-")
+            else:
+                row.extend(["-", "-", "-"])
+
+        if has_compare:
+            if r.compare_change is not None:
+                change = float(r.compare_change)
+                sign = "+" if change > 0 else ""
+                if change > 0:
+                    row.append(f"[red]{sign}{r.compare_change}%[/red]")
+                elif change < 0:
+                    row.append(f"[green]{sign}{r.compare_change}%[/green]")
+                else:
+                    row.append("0.0%")
+            else:
+                row.append("[dim]new[/dim]")
+
+        table.add_row(*row)
+
+    console.print(table)
+
+    # Summary
+    from decimal import Decimal
+    total_expense = sum(r.actual for r in results if r.actual < 0)
+    total_income = sum(r.actual for r in results if r.actual > 0)
+    net = total_income + total_expense
+
+    console.print("\n[bold]Summary:[/bold]")
+    console.print(f"  Expenses: {format_currency(total_expense, 'EUR')}")
+    console.print(f"  Income:   {format_currency(total_income, 'EUR')}")
+    console.print(f"  Net:      {format_currency(net, 'EUR')}")
+
+    # Budget utilization summary
+    if has_budget:
+        budgeted = [r for r in results if r.budget is not None and r.budget > 0]
+        if budgeted:
+            total_budget = sum(r.budget for r in budgeted)
+            total_actual = sum(abs(r.actual) for r in budgeted)
+            overall_pct = (total_actual / total_budget * 100).quantize(Decimal("0.1"))
+            over_budget = sum(1 for r in budgeted if r.remaining is not None and r.remaining < 0)
+            console.print(
+                f"  Budget: {format_currency(total_actual, 'EUR')} "
+                f"of {format_currency(total_budget, 'EUR')} ({overall_pct}%)"
+            )
+            if over_budget:
+                console.print(f"  [red]{over_budget} categories over budget[/red]")
 
 
 def print_success(message: str) -> None:

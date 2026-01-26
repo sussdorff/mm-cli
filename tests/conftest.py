@@ -10,6 +10,7 @@ from mm_cli.models import (
     AccountType,
     Category,
     CategoryType,
+    SpendingAnalysis,
     Transaction,
 )
 
@@ -159,18 +160,56 @@ def sample_plist_accounts() -> list[dict]:
 
     Note: MoneyMoney uses nested arrays for balance: [[amount, currency]]
     and 'group' is a boolean (True for account groups, False for actual accounts).
+    Group items act as section headers; subsequent non-group items belong to
+    the most recent group.
     """
     return [
+        {
+            "name": "Hauptkonten",
+            "group": True,
+        },
         {
             "uuid": "3c782ac3-ed8e-429e-8c21-56bf1324999d",
             "accountNumber": "DE89370400440532013000",
             "name": "Girokonto",
             "bankName": "Commerzbank",
             "bankCode": "COBADEFFXXX",
-            "balance": [[1234.56, "EUR"]],  # Nested array format
+            "balance": [[1234.56, "EUR"]],
             "type": "Girokonto",
             "owner": "Max Mustermann",
-            "group": False,  # False = actual account, True = account group
+            "group": False,
+            "portfolio": False,
+        },
+        {
+            "name": "Sparkonten",
+            "group": True,
+        },
+        {
+            "uuid": "4d893bc4-fe9f-530f-9d32-67cf2435000e",
+            "accountNumber": "DE27100777770209299700",
+            "name": "Tagesgeld",
+            "bankName": "N26",
+            "bankCode": "NTSBDEB1XXX",
+            "balance": [[5000.00, "EUR"]],
+            "type": "Tagesgeldkonto",
+            "owner": "Max Mustermann",
+            "group": False,
+            "portfolio": False,
+        },
+        {
+            "name": "Aufgelöst",
+            "group": True,
+        },
+        {
+            "uuid": "5e904cd5-0fa0-641g-ae43-78dg3546111f",
+            "accountNumber": "DE00000000000000000000",
+            "name": "Altes Konto",
+            "bankName": "Sparkasse",
+            "bankCode": "SPKADE00",
+            "balance": [[0.00, "EUR"]],
+            "type": "Girokonto",
+            "owner": "Max Mustermann",
+            "group": False,
             "portfolio": False,
         },
     ]
@@ -218,7 +257,7 @@ def sample_plist_categories() -> list[dict]:
             "indentation": 1,
             "group": False,
             "rules": "REWE OR Aldi",
-            "budget": {},
+            "budget": {"amount": 500.0, "available": 50.0, "period": "monthly"},
         },
     ]
 

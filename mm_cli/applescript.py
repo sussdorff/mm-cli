@@ -176,20 +176,26 @@ def _extract_balance(balance_data: list | None) -> tuple[Decimal, str]:
 def export_accounts() -> list[Account]:
     """Export all accounts from MoneyMoney.
 
+    MoneyMoney returns a flat list where group items (group=True) act as
+    section headers. All subsequent non-group items belong to the most
+    recent group until a new group appears.
+
     Returns:
-        List of Account objects.
+        List of Account objects with group names assigned.
     """
     script = 'tell application "MoneyMoney" to export accounts'
     data = _run_export_script(script)
 
     accounts = []
-    for item in data:
-        balance, currency = _extract_balance(item.get("balance"))
+    current_group = ""
 
-        # Skip account groups (they have group=True)
+    for item in data:
+        # Group items are section headers, not actual accounts
         if item.get("group", False):
+            current_group = item.get("name", "")
             continue
 
+        balance, currency = _extract_balance(item.get("balance"))
         account_num = item.get("accountNumber", "")
         iban = account_num if "DE" in str(account_num) else ""
         account = Account(
@@ -203,7 +209,7 @@ def export_accounts() -> list[Account]:
             owner=item.get("owner", ""),
             iban=iban,
             bic=item.get("bankCode", ""),
-            group=item.get("group", False),
+            group=current_group,
             portfolio=item.get("portfolio", False),
         )
         accounts.append(account)
@@ -253,8 +259,10 @@ def _parse_category_list(
         is_group = item.get("group", False)
         rules = item.get("rules", "")
 
-        # Safely parse budget
+        # Safely parse budget (dict with amount, period, available)
         budget = None
+        budget_period = ""
+        budget_available = None
         budget_raw = item.get("budget")
         if budget_raw is not None:
             if isinstance(budget_raw, dict):
@@ -262,6 +270,13 @@ def _parse_category_list(
                 if amount is not None:
                     try:
                         budget = Decimal(str(amount))
+                    except Exception:
+                        pass
+                budget_period = budget_raw.get("period", "")
+                avail = budget_raw.get("available")
+                if avail is not None:
+                    try:
+                        budget_available = Decimal(str(avail))
                     except Exception:
                         pass
             else:
@@ -289,6 +304,8 @@ def _parse_category_list(
             parent_name=parent_name,
             icon=str(item.get("icon", "")) if item.get("icon") else "",
             budget=budget,
+            budget_period=budget_period,
+            budget_available=budget_available,
             indentation=indentation,
             group=is_group,
             rules=rules,

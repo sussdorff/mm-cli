@@ -1,10 +1,13 @@
 """Tests for mm_cli.cli module."""
 
+from datetime import date
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
 from mm_cli.cli import app
+from mm_cli.models import Account, AccountType, Category, CategoryType, Transaction
 
 runner = CliRunner()
 
@@ -188,3 +191,190 @@ class TestSetCategoryCommand:
 
         assert result.exit_code == 1
         assert "Category not found" in result.output
+
+
+class TestAccountsFilters:
+    """Tests for accounts command with new filter flags."""
+
+    @patch("mm_cli.cli.export_accounts")
+    def test_accounts_active_filter(self, mock_export: MagicMock) -> None:
+        """Test accounts command with --active flag filters out Aufgelöst group."""
+        mock_export.return_value = [
+            Account(
+                id="1", name="Girokonto", account_number="123",
+                bank_name="Bank", balance=Decimal("1000"), group="Hauptkonten",
+            ),
+            Account(
+                id="2", name="Altes Konto", account_number="456",
+                bank_name="Bank", balance=Decimal("0"), group="Aufgelöst",
+            ),
+        ]
+
+        result = runner.invoke(app, ["accounts", "--active"])
+
+        assert result.exit_code == 0
+        assert "Girokonto" in result.output
+        assert "Altes Konto" not in result.output
+
+    @patch("mm_cli.cli.export_accounts")
+    def test_accounts_group_filter(self, mock_export: MagicMock) -> None:
+        """Test accounts command with --group flag."""
+        mock_export.return_value = [
+            Account(
+                id="1", name="Girokonto", account_number="123",
+                bank_name="Bank", balance=Decimal("1000"), group="Privat",
+            ),
+            Account(
+                id="2", name="Firmenkonto", account_number="456",
+                bank_name="Bank", balance=Decimal("5000"), group="Business",
+            ),
+        ]
+
+        result = runner.invoke(app, ["accounts", "--group", "Privat"])
+
+        assert result.exit_code == 0
+        assert "Girokonto" in result.output
+        assert "Firmenkonto" not in result.output
+
+    @patch("mm_cli.cli.export_accounts")
+    def test_accounts_hierarchy_mode(self, mock_export: MagicMock) -> None:
+        """Test accounts command with --hierarchy flag."""
+        mock_export.return_value = [
+            Account(
+                id="1", name="Girokonto", account_number="123",
+                bank_name="Bank", balance=Decimal("1000"), group="Hauptkonten",
+            ),
+            Account(
+                id="2", name="Tagesgeld", account_number="456",
+                bank_name="Bank", balance=Decimal("5000"), group="Sparkonten",
+            ),
+        ]
+
+        result = runner.invoke(app, ["accounts", "--hierarchy"])
+
+        assert result.exit_code == 0
+        assert "Hauptkonten" in result.output
+        assert "Sparkonten" in result.output
+        assert "Subtotal" in result.output
+
+    @patch("mm_cli.cli.export_accounts")
+    def test_accounts_group_column_in_json(self, mock_export: MagicMock) -> None:
+        """Test that group field appears in JSON output."""
+        mock_export.return_value = [
+            Account(
+                id="1", name="Girokonto", account_number="123",
+                bank_name="Bank", balance=Decimal("1000"), group="Privat",
+            ),
+        ]
+
+        result = runner.invoke(app, ["accounts", "--format", "json"])
+
+        assert result.exit_code == 0
+        assert '"group": "Privat"' in result.output
+
+
+class TestAnalyzeSpending:
+    """Tests for analyze spending command."""
+
+    @patch("mm_cli.cli.export_categories")
+    @patch("mm_cli.cli.export_transactions")
+    def test_spending_default(self, mock_tx: MagicMock, mock_cat: MagicMock) -> None:
+        """Test analyze spending with defaults."""
+        mock_tx.return_value = [
+            Transaction(
+                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
+                currency="EUR", name="REWE", purpose="Einkauf",
+                category_id="cat1", category_name="Lebensmittel",
+            ),
+        ]
+        mock_cat.return_value = [
+            Category(
+                id="cat1", name="Lebensmittel",
+                category_type=CategoryType.EXPENSE,
+                budget=Decimal("500"), budget_period="monthly",
+            ),
+        ]
+
+        result = runner.invoke(app, ["analyze", "spending"])
+
+        assert result.exit_code == 0
+        assert "Spending Analysis" in result.output
+        assert "Lebensmittel" in result.output
+
+    @patch("mm_cli.cli.export_categories")
+    @patch("mm_cli.cli.export_transactions")
+    def test_spending_type_filter(self, mock_tx: MagicMock, mock_cat: MagicMock) -> None:
+        """Test analyze spending with --type expense."""
+        mock_tx.return_value = [
+            Transaction(
+                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
+                currency="EUR", name="REWE", purpose="Einkauf",
+                category_id="cat1", category_name="Lebensmittel",
+            ),
+            Transaction(
+                id="2", account_id="acc1", booking_date=date(2026, 1, 15),
+                value_date=date(2026, 1, 15), amount=Decimal("3500.00"),
+                currency="EUR", name="Gehalt", purpose="Lohn",
+                category_id="cat2", category_name="Gehalt",
+            ),
+        ]
+        mock_cat.return_value = []
+
+        result = runner.invoke(app, ["analyze", "spending", "--type", "expense"])
+
+        assert result.exit_code == 0
+        assert "Lebensmittel" in result.output
+
+    @patch("mm_cli.cli.export_categories")
+    @patch("mm_cli.cli.export_transactions")
+    def test_spending_json_format(self, mock_tx: MagicMock, mock_cat: MagicMock) -> None:
+        """Test analyze spending with JSON output."""
+        mock_tx.return_value = [
+            Transaction(
+                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
+                currency="EUR", name="REWE", purpose="Einkauf",
+                category_id="cat1", category_name="Lebensmittel",
+            ),
+        ]
+        mock_cat.return_value = []
+
+        result = runner.invoke(app, ["analyze", "spending", "--format", "json"])
+
+        assert result.exit_code == 0
+        assert '"category_name": "Lebensmittel"' in result.output
+
+    @patch("mm_cli.cli.export_categories")
+    @patch("mm_cli.cli.export_transactions")
+    def test_spending_explicit_dates(self, mock_tx: MagicMock, mock_cat: MagicMock) -> None:
+        """Test analyze spending with explicit --from and --to."""
+        mock_tx.return_value = [
+            Transaction(
+                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
+                currency="EUR", name="REWE", purpose="Einkauf",
+                category_id="cat1", category_name="Lebensmittel",
+            ),
+        ]
+        mock_cat.return_value = []
+
+        result = runner.invoke(app, [
+            "analyze", "spending",
+            "--from", "2026-01-01", "--to", "2026-01-31",
+        ])
+
+        assert result.exit_code == 0
+
+    @patch("mm_cli.cli.export_categories")
+    @patch("mm_cli.cli.export_transactions")
+    def test_spending_no_transactions(self, mock_tx: MagicMock, mock_cat: MagicMock) -> None:
+        """Test analyze spending with no matching transactions."""
+        mock_tx.return_value = []
+        mock_cat.return_value = []
+
+        result = runner.invoke(app, ["analyze", "spending"])
+
+        assert result.exit_code == 0
+        assert "No transactions" in result.output

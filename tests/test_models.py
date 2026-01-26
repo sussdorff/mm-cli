@@ -8,6 +8,7 @@ from mm_cli.models import (
     Category,
     CategoryType,
     CategoryUsage,
+    SpendingAnalysis,
     Transaction,
 )
 
@@ -95,3 +96,78 @@ class TestCategoryUsage:
         assert data["transaction_count"] == 42
         assert data["total_amount"] == "-1234.56"
         assert data["category_type"] == "expense"
+
+
+class TestCategoryBudgetFields:
+    """Tests for Category budget_period and budget_available fields."""
+
+    def test_budget_fields_in_to_dict(self) -> None:
+        """Test that budget_period and budget_available are serialized."""
+        cat = Category(
+            id="test", name="Food",
+            budget=Decimal("500"),
+            budget_period="monthly",
+            budget_available=Decimal("50"),
+        )
+        data = cat.to_dict()
+        assert data["budget"] == "500"
+        assert data["budget_period"] == "monthly"
+        assert data["budget_available"] == "50"
+
+    def test_budget_fields_default(self) -> None:
+        """Test budget fields default values."""
+        cat = Category(id="test", name="Misc")
+        assert cat.budget_period == ""
+        assert cat.budget_available is None
+        data = cat.to_dict()
+        assert data["budget_period"] == ""
+        assert data["budget_available"] is None
+
+
+class TestSpendingAnalysis:
+    """Tests for SpendingAnalysis model."""
+
+    def test_to_dict_basic(self) -> None:
+        """Test SpendingAnalysis.to_dict() serialization."""
+        sa = SpendingAnalysis(
+            category_name="Lebensmittel",
+            category_path="Haushalt\\Lebensmittel",
+            category_type=CategoryType.EXPENSE,
+            actual=Decimal("-450.00"),
+            budget=Decimal("500.00"),
+            budget_period="monthly",
+            remaining=Decimal("50.00"),
+            percent_used=Decimal("90.0"),
+            transaction_count=15,
+        )
+        data = sa.to_dict()
+
+        assert data["category_name"] == "Lebensmittel"
+        assert data["actual"] == "-450.00"
+        assert data["budget"] == "500.00"
+        assert data["remaining"] == "50.00"
+        assert data["percent_used"] == "90.0"
+        assert data["transaction_count"] == 15
+        assert "compare_actual" not in data
+        assert "compare_change" not in data
+
+    def test_to_dict_with_comparison(self) -> None:
+        """Test SpendingAnalysis with comparison data."""
+        sa = SpendingAnalysis(
+            category_name="Lebensmittel",
+            category_path="Lebensmittel",
+            category_type=CategoryType.EXPENSE,
+            actual=Decimal("-450.00"),
+            budget=None,
+            budget_period="",
+            remaining=None,
+            percent_used=None,
+            transaction_count=15,
+            compare_actual=Decimal("-400.00"),
+            compare_change=Decimal("12.5"),
+        )
+        data = sa.to_dict()
+
+        assert data["compare_actual"] == "-400.00"
+        assert data["compare_change"] == "12.5"
+        assert data["budget"] is None
