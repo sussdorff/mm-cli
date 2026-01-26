@@ -400,7 +400,7 @@ def export_transactions(
 
         transaction = Transaction(
             id=str(item.get("id", "")),
-            account_id=item.get("accountNumber", ""),
+            account_id=str(item.get("accountUuid", "")),
             account_name=item.get("accountName", ""),
             booking_date=booking_date,
             value_date=value_date,
@@ -413,6 +413,7 @@ def export_transactions(
             checkmark=item.get("checkmark", False),
             comment=item.get("comment", ""),
             booked=item.get("booked", True),
+            counterparty_iban=str(item.get("accountNumber", "")),
         )
         transactions.append(transaction)
 

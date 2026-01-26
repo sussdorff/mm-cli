@@ -8,7 +8,18 @@ from typing import Annotated
 import typer
 
 from mm_cli import __version__
-from mm_cli.analysis import compute_spending, get_previous_period, resolve_period
+from mm_cli.analysis import (
+    compute_balance_history,
+    compute_cashflow,
+    compute_merchant_summary,
+    compute_spending,
+    compute_top_customers,
+    detect_recurring,
+    filter_transfers,
+    get_previous_period,
+    get_transfer_category_ids,
+    resolve_period,
+)
 from mm_cli.applescript import (
     EXPORT_FORMATS,
     AppleScriptError,
@@ -23,10 +34,15 @@ from mm_cli.models import CategoryType, CategoryUsage
 from mm_cli.output import (
     OutputFormat,
     output_accounts,
+    output_balance_history,
+    output_cashflow,
     output_categories,
     output_category_usage,
+    output_merchants,
+    output_recurring,
     output_spending,
     output_suggestions,
+    output_top_customers,
     output_transactions,
     print_error,
     print_info,
@@ -493,6 +509,13 @@ def analyze_spending(
         str | None,
         typer.Option("--type", help="Filter: income or expense"),
     ] = None,
+    include_transfers: Annotated[
+        bool,
+        typer.Option(
+            "--include-transfers",
+            help="Include internal transfers (Umbuchungen)",
+        ),
+    ] = False,
     format: Annotated[
         OutputFormat,
         typer.Option("--format", help="Output format"),
@@ -501,7 +524,8 @@ def analyze_spending(
     """Analyze spending by category with optional budget comparison.
 
     Shows spending per category, optionally compared against budgets
-    and/or the previous period.
+    and/or the previous period. By default excludes internal transfers
+    (Umbuchungen) which would distort the analysis.
 
     Examples:
         mm analyze spending
@@ -519,13 +543,19 @@ def analyze_spending(
         else:
             start, end, label = resolve_period(period)
 
-        # Load accounts for group filtering
+        # Load accounts for group filtering and IBAN-based transfer detection
+        all_accounts = None
         account_ids: set[str] | None = None
-        if group:
-            accs = export_accounts()
+        if group or not include_transfers:
+            all_accounts = export_accounts()
+        if group and all_accounts:
             group_lower = [g.lower() for g in group]
-            filtered_accs = [a for a in accs if a.group.lower() in group_lower]
-            account_ids = {a.id for a in filtered_accs} | {a.iban for a in filtered_accs if a.iban}
+            filtered_accs = [a for a in all_accounts if a.group.lower() in group_lower]
+            account_ids = (
+                {a.id for a in filtered_accs}
+                | {a.iban for a in filtered_accs if a.iban}
+                | {a.account_number for a in filtered_accs if a.account_number}
+            )
 
         # Load transactions
         txs = export_transactions(
@@ -546,12 +576,17 @@ def analyze_spending(
             elif tf == "income":
                 txs = [tx for tx in txs if tx.amount > 0]
 
+        # Load categories for budget info and transfer filtering
+        cats = export_categories()
+
+        # Filter out internal transfers (Umbuchungen) unless opted in
+        if not include_transfers:
+            transfer_ids = get_transfer_category_ids(cats)
+            txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
+
         if not txs:
             print_warning("No transactions found for the specified period.")
             return
-
-        # Load categories for budget info
-        cats = export_categories()
 
         # Comparison period
         compare_txs = None
@@ -565,6 +600,11 @@ def analyze_spending(
             )
             if account_ids is not None:
                 compare_txs = [tx for tx in compare_txs if tx.account_id in account_ids]
+            if not include_transfers:
+                compare_txs = filter_transfers(
+                    compare_txs, transfer_ids,
+                    accounts=all_accounts, active_groups=group,
+                )
             if type_filter:
                 tf = type_filter.lower()
                 if tf == "expense":
@@ -584,6 +624,444 @@ def analyze_spending(
     except ValueError as e:
         print_error(str(e))
         raise typer.Exit(1) from e
+    except Exception as e:
+        handle_applescript_error(e)
+
+
+@analyze_app.command("cashflow")
+def analyze_cashflow(
+    months: Annotated[
+        int,
+        typer.Option("--months", "-m", help="Number of months to show"),
+    ] = 6,
+    period: Annotated[
+        str,
+        typer.Option("--period", "-p", help="Aggregation: monthly or quarterly"),
+    ] = "monthly",
+    group: Annotated[
+        list[str] | None,
+        typer.Option("--group", "-g", help="Filter by account group (repeatable)"),
+    ] = None,
+    include_transfers: Annotated[
+        bool,
+        typer.Option(
+            "--include-transfers",
+            help="Include internal transfers (Umbuchungen)",
+        ),
+    ] = False,
+    format: Annotated[
+        OutputFormat,
+        typer.Option("--format", help="Output format"),
+    ] = OutputFormat.TABLE,
+) -> None:
+    """Show monthly/quarterly income vs expenses over time.
+
+    By default excludes internal transfers (Umbuchungen) which would
+    double-count money moved between own accounts.
+
+    Examples:
+        mm analyze cashflow
+        mm analyze cashflow --months 12 --period quarterly
+        mm analyze cashflow --group Privat
+    """
+    try:
+        # Load accounts for group filtering and IBAN-based transfer detection
+        all_accounts = None
+        account_ids: set[str] | None = None
+        if group or not include_transfers:
+            all_accounts = export_accounts()
+        if group and all_accounts:
+            group_lower = [g.lower() for g in group]
+            filtered_accs = [a for a in all_accounts if a.group.lower() in group_lower]
+            account_ids = (
+                {a.id for a in filtered_accs}
+                | {a.iban for a in filtered_accs if a.iban}
+                | {a.account_number for a in filtered_accs if a.account_number}
+            )
+
+        # Load transactions for the lookback period
+        from datetime import timedelta
+
+        today = date.today()
+        start = (today.replace(day=1) - timedelta(days=(months - 1) * 30)).replace(day=1)
+        txs = export_transactions(from_date=start, to_date=today)
+
+        if account_ids is not None:
+            txs = [tx for tx in txs if tx.account_id in account_ids]
+
+        # Filter out internal transfers
+        if not include_transfers:
+            cats = export_categories()
+            transfer_ids = get_transfer_category_ids(cats)
+            txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
+
+        if not txs:
+            print_warning("No transactions found for the specified period.")
+            return
+
+        results = compute_cashflow(txs, months=months, granularity=period)
+
+        if not results:
+            print_warning("No cashflow data to analyze.")
+            return
+
+        output_cashflow(results, format)
+
+    except Exception as e:
+        handle_applescript_error(e)
+
+
+@analyze_app.command("recurring")
+def analyze_recurring(
+    months: Annotated[
+        int,
+        typer.Option("--months", "-m", help="Lookback period in months"),
+    ] = 12,
+    min_occurrences: Annotated[
+        int,
+        typer.Option("--min-occurrences", "-n", help="Minimum occurrences to qualify"),
+    ] = 3,
+    group: Annotated[
+        list[str] | None,
+        typer.Option("--group", "-g", help="Filter by account group (repeatable)"),
+    ] = None,
+    include_transfers: Annotated[
+        bool,
+        typer.Option(
+            "--include-transfers",
+            help="Include internal transfers (Umbuchungen)",
+        ),
+    ] = False,
+    format: Annotated[
+        OutputFormat,
+        typer.Option("--format", help="Output format"),
+    ] = OutputFormat.TABLE,
+) -> None:
+    """Detect recurring transactions (subscriptions, standing orders).
+
+    By default excludes internal transfers (Umbuchungen) like credit
+    card settlements which are not real subscriptions.
+
+    Examples:
+        mm analyze recurring
+        mm analyze recurring --months 6 --min-occurrences 4
+        mm analyze recurring --group Privat
+    """
+    try:
+        all_accounts = None
+        account_ids: set[str] | None = None
+        if group or not include_transfers:
+            all_accounts = export_accounts()
+        if group and all_accounts:
+            group_lower = [g.lower() for g in group]
+            filtered_accs = [a for a in all_accounts if a.group.lower() in group_lower]
+            account_ids = (
+                {a.id for a in filtered_accs}
+                | {a.iban for a in filtered_accs if a.iban}
+                | {a.account_number for a in filtered_accs if a.account_number}
+            )
+
+        from datetime import timedelta
+
+        today = date.today()
+        start = today - timedelta(days=months * 30)
+        txs = export_transactions(from_date=start, to_date=today)
+
+        if account_ids is not None:
+            txs = [tx for tx in txs if tx.account_id in account_ids]
+
+        # Filter out internal transfers
+        if not include_transfers:
+            cats = export_categories()
+            transfer_ids = get_transfer_category_ids(cats)
+            txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
+
+        if not txs:
+            print_warning("No transactions found for the specified period.")
+            return
+
+        results = detect_recurring(txs, min_occurrences=min_occurrences)
+
+        if not results:
+            print_warning("No recurring transactions detected.")
+            return
+
+        output_recurring(results, format)
+
+    except Exception as e:
+        handle_applescript_error(e)
+
+
+@analyze_app.command("merchants")
+def analyze_merchants(
+    period: Annotated[
+        str,
+        typer.Option(
+            "--period", "-p",
+            help="Period: this-month, last-month, this-quarter, last-quarter, this-year",
+        ),
+    ] = "this-month",
+    from_date: Annotated[
+        str | None,
+        typer.Option("--from", "-f", help="Override start date (YYYY-MM-DD)"),
+    ] = None,
+    to_date: Annotated[
+        str | None,
+        typer.Option("--to", "-t", help="Override end date (YYYY-MM-DD)"),
+    ] = None,
+    type_filter: Annotated[
+        str,
+        typer.Option("--type", help="Filter: income, expense, or all"),
+    ] = "expense",
+    limit: Annotated[
+        int,
+        typer.Option("--limit", "-n", help="Maximum merchants to show"),
+    ] = 20,
+    group: Annotated[
+        list[str] | None,
+        typer.Option("--group", "-g", help="Filter by account group (repeatable)"),
+    ] = None,
+    include_transfers: Annotated[
+        bool,
+        typer.Option(
+            "--include-transfers",
+            help="Include internal transfers (Umbuchungen)",
+        ),
+    ] = False,
+    format: Annotated[
+        OutputFormat,
+        typer.Option("--format", help="Output format"),
+    ] = OutputFormat.TABLE,
+) -> None:
+    """Top merchants by total spend.
+
+    Defaults to expense transactions only. Use --type all to include
+    both income and expenses, or --type income for income only.
+
+    Examples:
+        mm analyze merchants
+        mm analyze merchants --period this-year --limit 30
+        mm analyze merchants --type all
+        mm analyze merchants --from 2026-01-01 --to 2026-01-31
+    """
+    try:
+        if from_date or to_date:
+            start = parse_date(from_date) if from_date else None
+            end = parse_date(to_date) if to_date else None
+        else:
+            start, end, _label = resolve_period(period)
+
+        all_accounts = None
+        account_ids: set[str] | None = None
+        if group or not include_transfers:
+            all_accounts = export_accounts()
+        if group and all_accounts:
+            group_lower = [g.lower() for g in group]
+            filtered_accs = [a for a in all_accounts if a.group.lower() in group_lower]
+            account_ids = (
+                {a.id for a in filtered_accs}
+                | {a.iban for a in filtered_accs if a.iban}
+                | {a.account_number for a in filtered_accs if a.account_number}
+            )
+
+        txs = export_transactions(from_date=start, to_date=end)
+
+        if account_ids is not None:
+            txs = [tx for tx in txs if tx.account_id in account_ids]
+
+        # Filter out internal transfers
+        if not include_transfers:
+            cats = export_categories()
+            transfer_ids = get_transfer_category_ids(cats)
+            txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
+
+        if not txs:
+            print_warning("No transactions found for the specified period.")
+            return
+
+        # Pass None for "all" to show both income and expense
+        effective_type = None if type_filter == "all" else type_filter
+        results = compute_merchant_summary(
+            txs, limit=limit, type_filter=effective_type,
+        )
+
+        if not results:
+            print_warning("No merchant data to analyze.")
+            return
+
+        output_merchants(results, format)
+
+    except ValueError as e:
+        print_error(str(e))
+        raise typer.Exit(1) from e
+    except Exception as e:
+        handle_applescript_error(e)
+
+
+@analyze_app.command("top-customers")
+def analyze_top_customers(
+    period: Annotated[
+        str,
+        typer.Option(
+            "--period", "-p",
+            help="Period: this-month, last-month, this-quarter, last-quarter, this-year",
+        ),
+    ] = "this-month",
+    from_date: Annotated[
+        str | None,
+        typer.Option("--from", "-f", help="Override start date (YYYY-MM-DD)"),
+    ] = None,
+    to_date: Annotated[
+        str | None,
+        typer.Option("--to", "-t", help="Override end date (YYYY-MM-DD)"),
+    ] = None,
+    limit: Annotated[
+        int,
+        typer.Option("--limit", "-n", help="Maximum customers to show"),
+    ] = 20,
+    group: Annotated[
+        list[str] | None,
+        typer.Option("--group", "-g", help="Filter by account group (repeatable)"),
+    ] = None,
+    include_transfers: Annotated[
+        bool,
+        typer.Option(
+            "--include-transfers",
+            help="Include internal transfers (Umbuchungen)",
+        ),
+    ] = False,
+    format: Annotated[
+        OutputFormat,
+        typer.Option("--format", help="Output format"),
+    ] = OutputFormat.TABLE,
+) -> None:
+    """Income grouped by counterparty (customer).
+
+    Excludes internal transfers by default so credit card settlements
+    don't appear as "customers".
+
+    Examples:
+        mm analyze top-customers
+        mm analyze top-customers --period this-year --limit 10
+        mm analyze top-customers --group cognovis
+    """
+    try:
+        if from_date or to_date:
+            start = parse_date(from_date) if from_date else None
+            end = parse_date(to_date) if to_date else None
+        else:
+            start, end, _label = resolve_period(period)
+
+        all_accounts = None
+        account_ids: set[str] | None = None
+        if group or not include_transfers:
+            all_accounts = export_accounts()
+        if group and all_accounts:
+            group_lower = [g.lower() for g in group]
+            filtered_accs = [a for a in all_accounts if a.group.lower() in group_lower]
+            account_ids = (
+                {a.id for a in filtered_accs}
+                | {a.iban for a in filtered_accs if a.iban}
+                | {a.account_number for a in filtered_accs if a.account_number}
+            )
+
+        txs = export_transactions(from_date=start, to_date=end)
+
+        if account_ids is not None:
+            txs = [tx for tx in txs if tx.account_id in account_ids]
+
+        # Filter out internal transfers
+        if not include_transfers:
+            cats = export_categories()
+            transfer_ids = get_transfer_category_ids(cats)
+            txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
+
+        if not txs:
+            print_warning("No transactions found for the specified period.")
+            return
+
+        results = compute_top_customers(txs, limit=limit)
+
+        if not results:
+            print_warning("No income transactions found.")
+            return
+
+        output_top_customers(results, format)
+
+    except ValueError as e:
+        print_error(str(e))
+        raise typer.Exit(1) from e
+    except Exception as e:
+        handle_applescript_error(e)
+
+
+@analyze_app.command("balance-history")
+def analyze_balance_history(
+    months: Annotated[
+        int,
+        typer.Option("--months", "-m", help="Number of months to show"),
+    ] = 6,
+    account: Annotated[
+        str | None,
+        typer.Option("--account", "-a", help="Filter by account name or IBAN"),
+    ] = None,
+    group: Annotated[
+        list[str] | None,
+        typer.Option("--group", "-g", help="Filter by account group (repeatable)"),
+    ] = None,
+    format: Annotated[
+        OutputFormat,
+        typer.Option("--format", help="Output format"),
+    ] = OutputFormat.TABLE,
+) -> None:
+    """Approximate historical balance per account.
+
+    Works backwards from current balance using transaction history.
+
+    Examples:
+        mm analyze balance-history
+        mm analyze balance-history --months 12 --account Girokonto
+        mm analyze balance-history --group Hauptkonten
+    """
+    try:
+        accs = export_accounts()
+
+        # Filter accounts
+        if account:
+            account_lower = account.lower()
+            accs = [
+                a for a in accs
+                if account_lower in a.name.lower() or account_lower == a.iban.lower()
+            ]
+        if group:
+            group_lower = [g.lower() for g in group]
+            accs = [a for a in accs if a.group.lower() in group_lower]
+
+        if not accs:
+            print_warning("No accounts found matching the criteria.")
+            return
+
+        # Load transactions for lookback period
+        from datetime import timedelta
+
+        today = date.today()
+        start = (today.replace(day=1) - timedelta(days=months * 30)).replace(day=1)
+        account_ids = (
+            {a.id for a in accs}
+            | {a.iban for a in accs if a.iban}
+            | {a.account_number for a in accs if a.account_number}
+        )
+        txs = export_transactions(from_date=start, to_date=today)
+        txs = [tx for tx in txs if tx.account_id in account_ids]
+
+        results = compute_balance_history(accs, txs, months=months)
+
+        if not results:
+            print_warning("No balance history data.")
+            return
+
+        output_balance_history(results, format)
+
     except Exception as e:
         handle_applescript_error(e)
 

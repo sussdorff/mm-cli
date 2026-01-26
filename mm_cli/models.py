@@ -1,6 +1,6 @@
 """Data models for MoneyMoney entities."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from enum import Enum
@@ -92,7 +92,9 @@ class Category:
             "group": self.group,
             "budget": str(self.budget) if self.budget else None,
             "budget_period": self.budget_period,
-            "budget_available": str(self.budget_available) if self.budget_available is not None else None,
+            "budget_available": (
+                str(self.budget_available) if self.budget_available is not None else None
+            ),
         }
         if self.rules:
             result["rules"] = self.rules
@@ -117,6 +119,7 @@ class Transaction:
     comment: str = ""
     account_name: str = ""
     booked: bool = True
+    counterparty_iban: str = ""
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -135,6 +138,7 @@ class Transaction:
             "checkmark": self.checkmark,
             "comment": self.comment,
             "booked": self.booked,
+            "counterparty_iban": self.counterparty_iban,
         }
 
 
@@ -193,3 +197,95 @@ class SpendingAnalysis:
         if self.compare_change is not None:
             result["compare_change"] = str(self.compare_change)
         return result
+
+
+@dataclass
+class CashflowPeriod:
+    """Cashflow data for a single period (month or quarter)."""
+
+    period_label: str
+    income: Decimal
+    expenses: Decimal
+    net: Decimal
+    transaction_count: int
+
+    def to_dict(self) -> dict:
+        return {
+            "period_label": self.period_label,
+            "income": str(self.income),
+            "expenses": str(self.expenses),
+            "net": str(self.net),
+            "transaction_count": self.transaction_count,
+        }
+
+
+@dataclass
+class RecurringTransaction:
+    """A detected recurring transaction (subscription/standing order)."""
+
+    merchant_name: str
+    category_name: str
+    avg_amount: Decimal
+    frequency: str  # "monthly", "quarterly", "annual"
+    occurrence_count: int
+    total_annual_cost: Decimal
+    last_date: date
+    amount_variance: Decimal
+
+    def to_dict(self) -> dict:
+        return {
+            "merchant_name": self.merchant_name,
+            "category_name": self.category_name,
+            "avg_amount": str(self.avg_amount),
+            "frequency": self.frequency,
+            "occurrence_count": self.occurrence_count,
+            "total_annual_cost": str(self.total_annual_cost),
+            "last_date": self.last_date.isoformat(),
+            "amount_variance": str(self.amount_variance),
+        }
+
+
+@dataclass
+class MerchantSummary:
+    """Summary of transactions for a single merchant/counterparty."""
+
+    merchant_name: str
+    transaction_count: int
+    total_amount: Decimal
+    avg_amount: Decimal
+    categories: list[str] = field(default_factory=list)
+    first_date: date | None = None
+    last_date: date | None = None
+    pct_of_total: Decimal | None = None
+
+    def to_dict(self) -> dict:
+        result: dict = {
+            "merchant_name": self.merchant_name,
+            "transaction_count": self.transaction_count,
+            "total_amount": str(self.total_amount),
+            "avg_amount": str(self.avg_amount),
+            "categories": self.categories,
+            "first_date": self.first_date.isoformat() if self.first_date else None,
+            "last_date": self.last_date.isoformat() if self.last_date else None,
+        }
+        if self.pct_of_total is not None:
+            result["pct_of_total"] = str(self.pct_of_total)
+        return result
+
+
+@dataclass
+class BalanceSnapshot:
+    """A balance snapshot for a single account at a point in time."""
+
+    period_label: str
+    account_name: str
+    balance: Decimal
+    change: Decimal
+
+    def to_dict(self) -> dict:
+        return {
+            "period_label": self.period_label,
+            "account_name": self.account_name,
+            "balance": str(self.balance),
+            "change": str(self.change),
+        }

@@ -122,8 +122,14 @@ class TestParseHelpers:
         items = [
             {"uuid": "1", "name": "Root", "type": 0, "indentation": 0, "group": True, "rules": ""},
             {"uuid": "2", "name": "Mid", "type": 0, "indentation": 1, "group": True, "rules": ""},
-            {"uuid": "3", "name": "Leaf", "type": 0, "indentation": 2, "group": False, "rules": "test rule"},
-            {"uuid": "4", "name": "Other Root", "type": 0, "indentation": 0, "group": False, "rules": ""},
+            {
+                "uuid": "3", "name": "Leaf", "type": 0,
+                "indentation": 2, "group": False, "rules": "test rule",
+            },
+            {
+                "uuid": "4", "name": "Other Root", "type": 0,
+                "indentation": 0, "group": False, "rules": "",
+            },
         ]
         result: list[Category] = []
         _parse_category_list(items, result)

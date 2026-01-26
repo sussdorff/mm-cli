@@ -57,7 +57,8 @@ def _normalize_name(name: str) -> str:
         # Keep first word(s) that look like a name
         clean_parts = []
         for part in parts:
-            if part.isdigit() or (len(part) >= 3 and sum(c.isdigit() for c in part) > len(part) / 2):
+            digit_count = sum(c.isdigit() for c in part)
+            if part.isdigit() or (len(part) >= 3 and digit_count > len(part) / 2):
                 break
             clean_parts.append(part)
         return "paypal:" + " ".join(clean_parts) if clean_parts else name

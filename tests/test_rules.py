@@ -3,7 +3,7 @@
 from datetime import date
 from decimal import Decimal
 
-from mm_cli.models import Category, CategoryType, Transaction
+from mm_cli.models import Category, Transaction
 from mm_cli.rules import (
     RuleSuggestion,
     _check_existing_rules,

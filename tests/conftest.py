@@ -10,7 +10,6 @@ from mm_cli.models import (
     AccountType,
     Category,
     CategoryType,
-    SpendingAnalysis,
     Transaction,
 )
 
@@ -155,6 +154,136 @@ def sample_transactions() -> list[Transaction]:
 
 
 @pytest.fixture
+def rich_transactions() -> list[Transaction]:
+    """Richer transaction set for recurring/merchant/cashflow analysis."""
+    txs: list[Transaction] = []
+    # Monthly salary over 6 months
+    for m in range(1, 7):
+        txs.append(Transaction(
+            id=f"sal-{m}",
+            account_id="DE89370400440532013000",
+            account_name="Girokonto",
+            booking_date=date(2025, m, 28),
+            value_date=date(2025, m, 28),
+            amount=Decimal("3500.00"),
+            currency="EUR",
+            name="Arbeitgeber GmbH",
+            purpose=f"Gehalt {m}/2025",
+            category_id="550e8400-e29b-41d4-a716-446655440001",
+            category_name="Gehalt",
+        ))
+    # Monthly Netflix subscription over 6 months
+    for m in range(1, 7):
+        txs.append(Transaction(
+            id=f"nf-{m}",
+            account_id="DE89370400440532013000",
+            account_name="Girokonto",
+            booking_date=date(2025, m, 5),
+            value_date=date(2025, m, 5),
+            amount=Decimal("-12.99"),
+            currency="EUR",
+            name="NETFLIX.COM",
+            purpose="Netflix Monthly",
+            category_id="cat-streaming",
+            category_name="Streaming",
+        ))
+    # Several REWE transactions
+    for m in range(1, 7):
+        for day in (3, 15):
+            txs.append(Transaction(
+                id=f"rewe-{m}-{day}",
+                account_id="DE89370400440532013000",
+                account_name="Girokonto",
+                booking_date=date(2025, m, day),
+                value_date=date(2025, m, day),
+                amount=Decimal("-45.50"),
+                currency="EUR",
+                name="REWE",
+                purpose="REWE SAGT DANKE",
+                category_id="550e8400-e29b-41d4-a716-446655440003",
+                category_name="Lebensmittel",
+            ))
+    # Client payment (income)
+    for m in (1, 3, 5):
+        txs.append(Transaction(
+            id=f"client-{m}",
+            account_id="DE89370400440532013000",
+            account_name="Girokonto",
+            booking_date=date(2025, m, 10),
+            value_date=date(2025, m, 10),
+            amount=Decimal("2500.00"),
+            currency="EUR",
+            name="Cognovis GmbH",
+            purpose="Rechnung 2025-{m}",
+            category_id="cat-invoice",
+            category_name="Rechnungen",
+        ))
+    # Internal transfer (credit card settlement) - should be excluded
+    for m in range(1, 7):
+        txs.append(Transaction(
+            id=f"kk-{m}",
+            account_id="DE89370400440532013000",
+            account_name="Girokonto",
+            booking_date=date(2025, m, 20),
+            value_date=date(2025, m, 20),
+            amount=Decimal("-500.00"),
+            currency="EUR",
+            name="American Express Europe S.A.",
+            purpose="Kreditkarten Abrechnung",
+            category_id="cat-kk-abrechnung",
+            category_name="Kreditkarten Abrechnung",
+        ))
+    return txs
+
+
+@pytest.fixture
+def transfer_categories() -> list[Category]:
+    """Categories including the Umbuchungen (transfer) hierarchy."""
+    return [
+        Category(
+            id="cat-umbuchungen", name="Umbuchungen",
+            category_type=CategoryType.EXPENSE,
+            indentation=0, group=True,
+            path="Umbuchungen",
+        ),
+        Category(
+            id="cat-echte-umbuchung", name="Echte Umbuchung",
+            category_type=CategoryType.EXPENSE,
+            indentation=1, group=False,
+            path="Umbuchungen\\Echte Umbuchung",
+        ),
+        Category(
+            id="cat-kk-abrechnung", name="Kreditkarten Abrechnung",
+            category_type=CategoryType.EXPENSE,
+            indentation=1, group=False,
+            path="Umbuchungen\\Kreditkarten Abrechnung",
+        ),
+        Category(
+            id="550e8400-e29b-41d4-a716-446655440001",
+            name="Gehalt",
+            category_type=CategoryType.INCOME,
+            path="Einkommen\\Gehalt",
+        ),
+        Category(
+            id="cat-streaming", name="Streaming",
+            category_type=CategoryType.EXPENSE,
+            path="Haushalt\\Streaming",
+        ),
+        Category(
+            id="550e8400-e29b-41d4-a716-446655440003",
+            name="Lebensmittel",
+            category_type=CategoryType.EXPENSE,
+            path="Haushalt\\Lebensmittel",
+        ),
+        Category(
+            id="cat-invoice", name="Rechnungen",
+            category_type=CategoryType.INCOME,
+            path="Einkommen\\Rechnungen",
+        ),
+    ]
+
+
+@pytest.fixture
 def sample_plist_accounts() -> list[dict]:
     """Sample plist data as returned by MoneyMoney for accounts.
 
@@ -268,6 +397,7 @@ def sample_plist_transactions() -> list[dict]:
     return [
         {
             "id": "12345",
+            "accountUuid": "3c782ac3-ed8e-429e-8c21-56bf1324999d",
             "accountNumber": "DE89370400440532013000",
             "accountName": "Girokonto",
             "bookingDate": date(2024, 1, 15),
@@ -282,4 +412,44 @@ def sample_plist_transactions() -> list[dict]:
             "comment": "",
             "booked": True,
         },
+    ]
+
+
+@pytest.fixture
+def multi_group_accounts() -> list[Account]:
+    """Accounts across two groups for IBAN transfer detection tests."""
+    return [
+        Account(
+            id="uuid-privat-giro",
+            name="Privat Girokonto",
+            account_number="0532013000",
+            bank_name="Commerzbank",
+            balance=Decimal("1000.00"),
+            currency="EUR",
+            account_type=AccountType.CHECKING,
+            iban="DE89370400440532013000",
+            group="Privat",
+        ),
+        Account(
+            id="uuid-privat-tagesgeld",
+            name="Privat Tagesgeld",
+            account_number="0209299700",
+            bank_name="N26",
+            balance=Decimal("5000.00"),
+            currency="EUR",
+            account_type=AccountType.SAVINGS,
+            iban="DE27100777770209299700",
+            group="Privat",
+        ),
+        Account(
+            id="uuid-cognovis-giro",
+            name="cognovis Geschaeftskonto",
+            account_number="0999888777",
+            bank_name="Commerzbank",
+            balance=Decimal("20000.00"),
+            currency="EUR",
+            account_type=AccountType.CHECKING,
+            iban="DE55370400440999888777",
+            group="cognovis",
+        ),
     ]

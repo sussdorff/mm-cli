@@ -10,10 +10,18 @@ from typing import Any
 from rich.console import Console
 from rich.table import Table
 
-from mm_cli.models import Account, Category, CategoryUsage, SpendingAnalysis, Transaction
+from mm_cli.models import (
+    Account,
+    BalanceSnapshot,
+    CashflowPeriod,
+    Category,
+    CategoryUsage,
+    MerchantSummary,
+    RecurringTransaction,
+    SpendingAnalysis,
+    Transaction,
+)
 from mm_cli.rules import RuleSuggestion
-
-import sys as _sys
 
 console = Console()
 err_console = Console(stderr=True)
@@ -138,7 +146,6 @@ def _output_accounts_flat(accounts: list[Account]) -> None:
 def _output_accounts_hierarchy(accounts: list[Account]) -> None:
     """Output accounts grouped by section with headers and subtotals."""
     from collections import OrderedDict
-    from decimal import Decimal
 
     # Group accounts by their group name, preserving order
     groups: OrderedDict[str, list[Account]] = OrderedDict()
@@ -175,7 +182,7 @@ def _output_accounts_hierarchy(accounts: list[Account]) -> None:
             a.balance for a in group_accounts if a.currency == "EUR"
         )
         table.add_row(
-            f"  [dim]Subtotal[/dim]",
+            "  [dim]Subtotal[/dim]",
             "", "",
             f"[bold]{format_currency(group_total, 'EUR')}[/bold]",
             "",
@@ -248,7 +255,10 @@ def output_categories(
     console.print(table)
     group_count = sum(1 for c in categories if c.group)
     leaf_count = len(categories) - group_count
-    console.print(f"\n[dim]Total: {len(categories)} categories ({group_count} groups, {leaf_count} leaf)[/dim]")
+    total = len(categories)
+    console.print(
+        f"\n[dim]Total: {total} categories ({group_count} groups, {leaf_count} leaf)[/dim]"
+    )
 
 
 def output_transactions(
@@ -279,6 +289,7 @@ def output_transactions(
                 "currency",
                 "category_name",
                 "account_name",
+                "counterparty_iban",
             ],
         )
         writer.writeheader()
@@ -293,6 +304,7 @@ def output_transactions(
                     "currency": tx.currency,
                     "category_name": tx.category_name or "",
                     "account_name": tx.account_name,
+                    "counterparty_iban": tx.counterparty_iban,
                 }
             )
         console.print(output.getvalue())
@@ -429,7 +441,6 @@ def output_suggestions(
 
     # Table format
     # Split into sections by confidence
-    has_existing = any(s.existing_rule for s in suggestions)
     new_rules = [s for s in suggestions if not s.existing_rule]
     existing_rules = [s for s in suggestions if s.existing_rule]
 
@@ -548,8 +559,12 @@ def output_spending(
                 "transaction_count": r.transaction_count,
             }
             if "compare_actual" in fieldnames:
-                row["compare_actual"] = str(r.compare_actual) if r.compare_actual is not None else ""
-                row["compare_change"] = str(r.compare_change) if r.compare_change is not None else ""
+                row["compare_actual"] = (
+                    str(r.compare_actual) if r.compare_actual is not None else ""
+                )
+                row["compare_change"] = (
+                    str(r.compare_change) if r.compare_change is not None else ""
+                )
             writer.writerow(row)
         console.print(output.getvalue())
         return
@@ -650,6 +665,327 @@ def output_spending(
             )
             if over_budget:
                 console.print(f"  [red]{over_budget} categories over budget[/red]")
+
+
+def output_cashflow(
+    results: list[CashflowPeriod],
+    format: OutputFormat = OutputFormat.TABLE,
+) -> None:
+    """Output cashflow analysis in the specified format."""
+    if format == OutputFormat.JSON:
+        data = [r.to_dict() for r in results]
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        return
+
+    if format == OutputFormat.CSV:
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=["period_label", "income", "expenses", "net", "transaction_count"],
+        )
+        writer.writeheader()
+        for r in results:
+            writer.writerow({
+                "period_label": r.period_label,
+                "income": str(r.income),
+                "expenses": str(r.expenses),
+                "net": str(r.net),
+                "transaction_count": r.transaction_count,
+            })
+        console.print(output.getvalue())
+        return
+
+    table = Table(title="Cashflow Analysis", show_header=True, header_style="bold")
+    table.add_column("Period", style="cyan")
+    table.add_column("Income", justify="right")
+    table.add_column("Expenses", justify="right")
+    table.add_column("Net", justify="right")
+    table.add_column("# Txns", justify="right", style="dim")
+
+    for r in results:
+        table.add_row(
+            r.period_label,
+            format_currency(r.income, "EUR"),
+            format_currency(r.expenses, "EUR"),
+            format_currency(r.net, "EUR"),
+            str(r.transaction_count),
+        )
+
+    console.print(table)
+
+    # Totals
+    total_income = sum(r.income for r in results)
+    total_expenses = sum(r.expenses for r in results)
+    total_net = total_income + total_expenses
+    console.print("\n[bold]Totals:[/bold]")
+    console.print(f"  Income:   {format_currency(total_income, 'EUR')}")
+    console.print(f"  Expenses: {format_currency(total_expenses, 'EUR')}")
+    console.print(f"  Net:      {format_currency(total_net, 'EUR')}")
+
+
+def output_recurring(
+    results: list[RecurringTransaction],
+    format: OutputFormat = OutputFormat.TABLE,
+) -> None:
+    """Output recurring transaction analysis in the specified format."""
+    if format == OutputFormat.JSON:
+        data = [r.to_dict() for r in results]
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        return
+
+    if format == OutputFormat.CSV:
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=[
+                "merchant_name", "category_name", "avg_amount", "frequency",
+                "occurrence_count", "total_annual_cost", "last_date", "amount_variance",
+            ],
+        )
+        writer.writeheader()
+        for r in results:
+            writer.writerow({
+                "merchant_name": r.merchant_name,
+                "category_name": r.category_name,
+                "avg_amount": str(r.avg_amount),
+                "frequency": r.frequency,
+                "occurrence_count": r.occurrence_count,
+                "total_annual_cost": str(r.total_annual_cost),
+                "last_date": r.last_date.isoformat(),
+                "amount_variance": str(r.amount_variance),
+            })
+        console.print(output.getvalue())
+        return
+
+    table = Table(title="Recurring Transactions", show_header=True, header_style="bold")
+    table.add_column("Merchant", style="cyan", min_width=20)
+    table.add_column("Category")
+    table.add_column("Amount (avg)", justify="right")
+    table.add_column("Frequency")
+    table.add_column("Count", justify="right")
+    table.add_column("Annual Cost", justify="right")
+    table.add_column("Last Date", style="dim")
+
+    for r in results:
+        table.add_row(
+            r.merchant_name,
+            r.category_name,
+            format_currency(r.avg_amount, "EUR"),
+            r.frequency,
+            str(r.occurrence_count),
+            format_currency(-r.total_annual_cost, "EUR")
+            if r.avg_amount < 0
+            else format_currency(r.total_annual_cost, "EUR"),
+            r.last_date.isoformat(),
+        )
+
+    console.print(table)
+
+    total_annual = sum(r.total_annual_cost for r in results if r.avg_amount < 0)
+    cost_str = format_currency(-total_annual, "EUR")
+    console.print(f"\n[bold]Total annual recurring cost:[/bold] {cost_str}")
+    console.print(f"[dim]{len(results)} recurring items detected[/dim]")
+
+
+def output_merchants(
+    results: list[MerchantSummary],
+    format: OutputFormat = OutputFormat.TABLE,
+) -> None:
+    """Output merchant summary in the specified format."""
+    if format == OutputFormat.JSON:
+        data = [r.to_dict() for r in results]
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        return
+
+    if format == OutputFormat.CSV:
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=[
+                "merchant_name", "transaction_count", "total_amount",
+                "avg_amount", "categories", "first_date", "last_date",
+            ],
+        )
+        writer.writeheader()
+        for r in results:
+            writer.writerow({
+                "merchant_name": r.merchant_name,
+                "transaction_count": r.transaction_count,
+                "total_amount": str(r.total_amount),
+                "avg_amount": str(r.avg_amount),
+                "categories": ", ".join(r.categories),
+                "first_date": r.first_date.isoformat() if r.first_date else "",
+                "last_date": r.last_date.isoformat() if r.last_date else "",
+            })
+        console.print(output.getvalue())
+        return
+
+    table = Table(title="Merchant Summary", show_header=True, header_style="bold")
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Merchant", style="cyan", min_width=20)
+    table.add_column("# Txns", justify="right")
+    table.add_column("Total", justify="right")
+    table.add_column("Avg", justify="right")
+    table.add_column("Categories", style="dim", max_width=30)
+    table.add_column("Period", style="dim")
+
+    for i, r in enumerate(results, 1):
+        period = ""
+        if r.first_date and r.last_date:
+            period = f"{r.first_date.isoformat()} - {r.last_date.isoformat()}"
+        table.add_row(
+            str(i),
+            r.merchant_name,
+            str(r.transaction_count),
+            format_currency(r.total_amount, "EUR"),
+            format_currency(r.avg_amount, "EUR"),
+            ", ".join(r.categories[:3]),
+            period,
+        )
+
+    console.print(table)
+
+
+def output_top_customers(
+    results: list[MerchantSummary],
+    format: OutputFormat = OutputFormat.TABLE,
+) -> None:
+    """Output top customers analysis in the specified format."""
+    if format == OutputFormat.JSON:
+        data = [r.to_dict() for r in results]
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        return
+
+    if format == OutputFormat.CSV:
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=[
+                "merchant_name", "transaction_count", "total_amount",
+                "pct_of_total", "avg_amount", "categories", "first_date", "last_date",
+            ],
+        )
+        writer.writeheader()
+        for r in results:
+            writer.writerow({
+                "merchant_name": r.merchant_name,
+                "transaction_count": r.transaction_count,
+                "total_amount": str(r.total_amount),
+                "pct_of_total": str(r.pct_of_total) if r.pct_of_total else "",
+                "avg_amount": str(r.avg_amount),
+                "categories": ", ".join(r.categories),
+                "first_date": r.first_date.isoformat() if r.first_date else "",
+                "last_date": r.last_date.isoformat() if r.last_date else "",
+            })
+        console.print(output.getvalue())
+        return
+
+    table = Table(title="Top Customers (Income)", show_header=True, header_style="bold")
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Customer", style="cyan", min_width=20)
+    table.add_column("# Txns", justify="right")
+    table.add_column("Total", justify="right")
+    table.add_column("% of Total", justify="right")
+    table.add_column("Avg", justify="right")
+    table.add_column("Categories", style="dim", max_width=30)
+    table.add_column("Period", style="dim")
+
+    for i, r in enumerate(results, 1):
+        period = ""
+        if r.first_date and r.last_date:
+            period = f"{r.first_date.isoformat()} - {r.last_date.isoformat()}"
+        pct_str = f"{r.pct_of_total}%" if r.pct_of_total is not None else "-"
+        table.add_row(
+            str(i),
+            r.merchant_name,
+            str(r.transaction_count),
+            format_currency(r.total_amount, "EUR"),
+            pct_str,
+            format_currency(r.avg_amount, "EUR"),
+            ", ".join(r.categories[:3]),
+            period,
+        )
+
+    console.print(table)
+
+    total = sum(r.total_amount for r in results)
+    total_str = format_currency(total, "EUR")
+    console.print(f"\n[bold]Total income from top customers:[/bold] {total_str}")
+
+
+def output_balance_history(
+    results: list[BalanceSnapshot],
+    format: OutputFormat = OutputFormat.TABLE,
+) -> None:
+    """Output balance history in the specified format."""
+    if format == OutputFormat.JSON:
+        data = [r.to_dict() for r in results]
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        return
+
+    if format == OutputFormat.CSV:
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=["period_label", "account_name", "balance", "change"],
+        )
+        writer.writeheader()
+        for r in results:
+            writer.writerow({
+                "period_label": r.period_label,
+                "account_name": r.account_name,
+                "balance": str(r.balance),
+                "change": str(r.change),
+            })
+        console.print(output.getvalue())
+        return
+
+    # Determine accounts and build pivot table
+    accounts = sorted({r.account_name for r in results})
+    periods = sorted({r.period_label for r in results})
+
+    # Build lookup
+    lookup: dict[tuple[str, str], BalanceSnapshot] = {}
+    for r in results:
+        lookup[(r.period_label, r.account_name)] = r
+
+    if len(accounts) == 1:
+        # Single account: show Month | Balance | Change
+        table = Table(
+            title=f"Balance History: {accounts[0]}",
+            show_header=True,
+            header_style="bold",
+        )
+        table.add_column("Month", style="cyan")
+        table.add_column("Balance", justify="right")
+        table.add_column("Change", justify="right")
+
+        for period in periods:
+            snap = lookup.get((period, accounts[0]))
+            if snap:
+                table.add_row(
+                    period,
+                    format_currency(snap.balance, "EUR"),
+                    format_currency(snap.change, "EUR"),
+                )
+    else:
+        # Multiple accounts: pivot table
+        table = Table(title="Balance History", show_header=True, header_style="bold")
+        table.add_column("Month", style="cyan")
+        for acc in accounts:
+            table.add_column(acc, justify="right")
+
+        for period in periods:
+            row = [period]
+            for acc in accounts:
+                snap = lookup.get((period, acc))
+                if snap:
+                    row.append(format_currency(snap.balance, "EUR"))
+                else:
+                    row.append("-")
+            table.add_row(*row)
+
+    console.print(table)
 
 
 def print_success(message: str) -> None:
