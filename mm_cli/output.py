@@ -17,6 +17,7 @@ from mm_cli.models import (
     Category,
     CategoryUsage,
     MerchantSummary,
+    Portfolio,
     RecurringTransaction,
     SpendingAnalysis,
     Transaction,
@@ -986,6 +987,128 @@ def output_balance_history(
             table.add_row(*row)
 
     console.print(table)
+
+
+def output_portfolio(
+    portfolios: list[Portfolio],
+    format: OutputFormat = OutputFormat.TABLE,
+) -> None:
+    """Output portfolio data in the specified format.
+
+    Args:
+        portfolios: List of portfolios to output.
+        format: Output format.
+    """
+    if format == OutputFormat.JSON:
+        data = [p.to_dict() for p in portfolios]
+        print(json.dumps(data, indent=2, cls=DecimalEncoder))
+        return
+
+    if format == OutputFormat.CSV:
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=[
+                "account", "name", "isin", "quantity", "purchase_price",
+                "current_price", "currency", "market_value", "gain_loss",
+                "gain_loss_percent", "asset_class",
+            ],
+        )
+        writer.writeheader()
+        for p in portfolios:
+            for s in p.securities:
+                writer.writerow({
+                    "account": p.account_name,
+                    "name": s.name,
+                    "isin": s.isin,
+                    "quantity": s.quantity,
+                    "purchase_price": s.purchase_price,
+                    "current_price": s.current_price,
+                    "currency": s.currency,
+                    "market_value": s.market_value,
+                    "gain_loss": s.gain_loss,
+                    "gain_loss_percent": s.gain_loss_percent,
+                    "asset_class": s.asset_class,
+                })
+        console.print(output.getvalue())
+        return
+
+    # Table format
+    table = Table(title="Portfolio", show_header=True, header_style="bold")
+    table.add_column("Account", style="dim")
+    table.add_column("Name", style="cyan", min_width=20)
+    table.add_column("ISIN", style="dim")
+    table.add_column("Qty", justify="right")
+    table.add_column("Purchase", justify="right")
+    table.add_column("Current", justify="right")
+    table.add_column("Market Value", justify="right")
+    table.add_column("Gain/Loss", justify="right")
+    table.add_column("G/L %", justify="right")
+
+    grand_total_value = 0.0
+    grand_total_gain_loss = 0.0
+
+    for p in portfolios:
+        for s in p.securities:
+            # Color-code gain/loss
+            if s.gain_loss > 0:
+                gl_str = f"[green]+{s.gain_loss:,.2f} {s.currency}[/green]"
+                gl_pct_str = f"[green]+{s.gain_loss_percent:.2f}%[/green]"
+            elif s.gain_loss < 0:
+                gl_str = f"[red]{s.gain_loss:,.2f} {s.currency}[/red]"
+                gl_pct_str = f"[red]{s.gain_loss_percent:.2f}%[/red]"
+            else:
+                gl_str = f"{s.gain_loss:,.2f} {s.currency}"
+                gl_pct_str = f"{s.gain_loss_percent:.2f}%"
+
+            table.add_row(
+                p.account_name,
+                s.name,
+                s.isin,
+                f"{s.quantity:,.4f}" if s.quantity != int(s.quantity) else f"{int(s.quantity)}",
+                f"{s.purchase_price:,.2f} {s.currency}",
+                f"{s.current_price:,.2f} {s.currency}",
+                f"{s.market_value:,.2f} {s.currency}",
+                gl_str,
+                gl_pct_str,
+            )
+
+        # Subtotal per account
+        if len(portfolios) > 1 or len(p.securities) > 1:
+            if p.total_gain_loss > 0:
+                sub_gl = f"[green]+{p.total_gain_loss:,.2f}[/green]"
+            elif p.total_gain_loss < 0:
+                sub_gl = f"[red]{p.total_gain_loss:,.2f}[/red]"
+            else:
+                sub_gl = f"{p.total_gain_loss:,.2f}"
+
+            table.add_row(
+                "",
+                f"[bold]Subtotal: {p.account_name}[/bold]",
+                "", "", "", "",
+                f"[bold]{p.total_value:,.2f}[/bold]",
+                f"[bold]{sub_gl}[/bold]",
+                "",
+                style="dim",
+            )
+
+        grand_total_value += p.total_value
+        grand_total_gain_loss += p.total_gain_loss
+
+    console.print(table)
+
+    # Grand total
+    console.print(f"\n[bold]Total Portfolio Value:[/bold] {grand_total_value:,.2f}")
+    if grand_total_gain_loss > 0:
+        console.print(
+            f"[bold]Total Gain/Loss:[/bold] [green]+{grand_total_gain_loss:,.2f}[/green]"
+        )
+    elif grand_total_gain_loss < 0:
+        console.print(
+            f"[bold]Total Gain/Loss:[/bold] [red]{grand_total_gain_loss:,.2f}[/red]"
+        )
+    else:
+        console.print(f"[bold]Total Gain/Loss:[/bold] {grand_total_gain_loss:,.2f}")
 
 
 def print_success(message: str) -> None:

@@ -9,15 +9,19 @@ import pytest
 from mm_cli.applescript import (
     AppleScriptError,
     MoneyMoneyNotRunningError,
+    _extract_balance,
     _parse_account_type,
     _parse_category_list,
     _parse_category_type,
     export_accounts,
     export_categories,
+    export_portfolio,
     export_transactions,
     find_category_by_name,
     run_applescript,
     set_transaction_category,
+    set_transaction_checkmark,
+    set_transaction_comment,
 )
 from mm_cli.models import AccountType, Category, CategoryType
 
@@ -307,3 +311,272 @@ class TestFindCategoryByName:
         result = find_category_by_name("NonExistent")
 
         assert result is None
+
+
+class TestExportPortfolio:
+    """Tests for export_portfolio function."""
+
+    @patch("mm_cli.applescript._run_export_script")
+    def test_export_portfolio_parsing(
+        self, mock_export: MagicMock, sample_plist_portfolio: list[dict],
+    ) -> None:
+        """Test export_portfolio parses plist data correctly."""
+        mock_export.return_value = sample_plist_portfolio
+
+        portfolios = export_portfolio()
+
+        assert len(portfolios) == 1
+        p = portfolios[0]
+        assert p.account_name == "Depot Commerzbank"
+        assert p.account_id == "depot-uuid-1"
+        assert len(p.securities) == 2
+
+        # Check first security
+        s1 = p.securities[0]
+        assert s1.name == "iShares Core MSCI World"
+        assert s1.isin == "IE00B4L5Y983"
+        assert s1.quantity == 50.0
+        assert s1.purchase_price == 65.00
+        assert s1.current_price == 78.50
+        assert s1.currency == "EUR"
+        assert s1.market_value == 3925.00
+        assert s1.asset_class == "Equity"
+
+        # Gain/loss should be calculated
+        expected_gain = 3925.00 - (50.0 * 65.00)
+        assert s1.gain_loss == expected_gain
+
+        # Check second security (negative gain)
+        s2 = p.securities[1]
+        assert s2.name == "Xtrackers DAX ETF"
+        expected_gain2 = 2650.00 - (20.0 * 140.00)
+        assert s2.gain_loss == expected_gain2
+        assert s2.gain_loss < 0
+
+    @patch("mm_cli.applescript._run_export_script")
+    def test_export_portfolio_totals(
+        self, mock_export: MagicMock, sample_plist_portfolio: list[dict],
+    ) -> None:
+        """Test that portfolio totals are computed correctly."""
+        mock_export.return_value = sample_plist_portfolio
+
+        portfolios = export_portfolio()
+
+        p = portfolios[0]
+        expected_total = 3925.00 + 2650.00
+        assert p.total_value == expected_total
+        assert p.total_gain_loss == sum(s.gain_loss for s in p.securities)
+
+    @patch("mm_cli.applescript._run_export_script")
+    def test_export_portfolio_with_account_id(self, mock_export: MagicMock) -> None:
+        """Test export_portfolio builds correct AppleScript with account filter."""
+        mock_export.return_value = []
+
+        export_portfolio(account_id="test-uuid")
+
+        call_args = mock_export.call_args[0][0]
+        assert 'export portfolio of account id "test-uuid"' in call_args
+
+    @patch("mm_cli.applescript._run_export_script")
+    def test_export_portfolio_without_account_id(self, mock_export: MagicMock) -> None:
+        """Test export_portfolio builds correct AppleScript without filter."""
+        mock_export.return_value = []
+
+        export_portfolio()
+
+        call_args = mock_export.call_args[0][0]
+        assert call_args == 'tell application "MoneyMoney" to export portfolio'
+
+    @patch("mm_cli.applescript._run_export_script")
+    def test_export_portfolio_empty_securities(self, mock_export: MagicMock) -> None:
+        """Test export_portfolio with account that has no securities."""
+        mock_export.return_value = [
+            {"name": "Empty Depot", "uuid": "empty-uuid", "securities": []},
+        ]
+
+        portfolios = export_portfolio()
+
+        assert len(portfolios) == 1
+        assert portfolios[0].securities == []
+        assert portfolios[0].total_value == 0.0
+        assert portfolios[0].total_gain_loss == 0.0
+
+    @patch("mm_cli.applescript._run_export_script")
+    def test_export_portfolio_single_dict(self, mock_export: MagicMock) -> None:
+        """Test export_portfolio handles single dict (filtered by account)."""
+        mock_export.return_value = {
+            "name": "Single Depot",
+            "uuid": "single-uuid",
+            "securities": [
+                {
+                    "name": "Test ETF",
+                    "isin": "DE0001234567",
+                    "quantity": 10.0,
+                    "purchasePrice": 100.0,
+                    "price": 110.0,
+                    "currency": "EUR",
+                    "marketValue": 1100.0,
+                },
+            ],
+        }
+
+        portfolios = export_portfolio()
+
+        assert len(portfolios) == 1
+        assert portfolios[0].account_name == "Single Depot"
+        assert len(portfolios[0].securities) == 1
+
+
+class TestSetTransactionCheckmark:
+    """Tests for set_transaction_checkmark function."""
+
+    @patch("mm_cli.applescript.run_applescript")
+    def test_set_checkmark_on(self, mock_run: MagicMock) -> None:
+        """Test setting checkmark to on."""
+        mock_run.return_value = ""
+
+        result = set_transaction_checkmark("12345", checked=True)
+
+        assert result is True
+        call_args = mock_run.call_args[0][0]
+        assert "set transaction id 12345" in call_args
+        assert 'checkmark to "on"' in call_args
+
+    @patch("mm_cli.applescript.run_applescript")
+    def test_set_checkmark_off(self, mock_run: MagicMock) -> None:
+        """Test clearing checkmark (setting to off)."""
+        mock_run.return_value = ""
+
+        result = set_transaction_checkmark("12345", checked=False)
+
+        assert result is True
+        call_args = mock_run.call_args[0][0]
+        assert "set transaction id 12345" in call_args
+        assert 'checkmark to "off"' in call_args
+
+    @patch("mm_cli.applescript.run_applescript")
+    def test_set_checkmark_calls_applescript(self, mock_run: MagicMock) -> None:
+        """Test that the correct AppleScript is constructed."""
+        mock_run.return_value = ""
+
+        set_transaction_checkmark("99999", checked=True)
+
+        expected = (
+            'tell application "MoneyMoney" to set transaction id 99999 '
+            'checkmark to "on"'
+        )
+        mock_run.assert_called_once_with(expected)
+
+
+class TestSetTransactionComment:
+    """Tests for set_transaction_comment function."""
+
+    @patch("mm_cli.applescript.run_applescript")
+    def test_set_comment_simple(self, mock_run: MagicMock) -> None:
+        """Test setting a simple comment."""
+        mock_run.return_value = ""
+
+        result = set_transaction_comment("12345", "test comment")
+
+        assert result is True
+        call_args = mock_run.call_args[0][0]
+        assert "set transaction id 12345" in call_args
+        assert 'comment to "test comment"' in call_args
+
+    @patch("mm_cli.applescript.run_applescript")
+    def test_set_comment_with_quotes(self, mock_run: MagicMock) -> None:
+        """Test that double quotes in comments are escaped."""
+        mock_run.return_value = ""
+
+        set_transaction_comment("12345", 'He said "hello"')
+
+        call_args = mock_run.call_args[0][0]
+        assert 'comment to "He said \\"hello\\""' in call_args
+
+    @patch("mm_cli.applescript.run_applescript")
+    def test_set_comment_empty(self, mock_run: MagicMock) -> None:
+        """Test setting an empty comment (clearing it)."""
+        mock_run.return_value = ""
+
+        result = set_transaction_comment("12345", "")
+
+        assert result is True
+        call_args = mock_run.call_args[0][0]
+        assert 'comment to ""' in call_args
+
+    @patch("mm_cli.applescript.run_applescript")
+    def test_set_comment_calls_applescript(self, mock_run: MagicMock) -> None:
+        """Test that the correct AppleScript is constructed."""
+        mock_run.return_value = ""
+
+        set_transaction_comment("54321", "Rechnung bezahlt")
+
+        expected = (
+            'tell application "MoneyMoney" to set transaction id 54321 '
+            'comment to "Rechnung bezahlt"'
+        )
+        mock_run.assert_called_once_with(expected)
+
+
+class TestExtractBalance:
+    """Tests for _extract_balance helper function."""
+
+    def test_nested_array_eur(self) -> None:
+        """Test standard nested array format [[100.0, "EUR"]]."""
+        amount, currency = _extract_balance([[100.0, "EUR"]])
+        assert amount == Decimal("100.0")
+        assert currency == "EUR"
+
+    def test_nested_array_zero(self) -> None:
+        """Test zero balance [[0, "EUR"]]."""
+        amount, currency = _extract_balance([[0, "EUR"]])
+        assert amount == Decimal("0")
+        assert currency == "EUR"
+
+    def test_nested_array_chf(self) -> None:
+        """Test unusual currency [[500, "CHF"]]."""
+        amount, currency = _extract_balance([[500, "CHF"]])
+        assert amount == Decimal("500")
+        assert currency == "CHF"
+
+    def test_nested_array_usd(self) -> None:
+        """Test USD currency [[1234.56, "USD"]]."""
+        amount, currency = _extract_balance([[1234.56, "USD"]])
+        assert amount == Decimal("1234.56")
+        assert currency == "USD"
+
+    def test_none_returns_default(self) -> None:
+        """Test None balance returns (0, EUR) default."""
+        amount, currency = _extract_balance(None)
+        assert amount == Decimal("0")
+        assert currency == "EUR"
+
+    def test_empty_list_returns_default(self) -> None:
+        """Test empty list returns (0, EUR) default."""
+        amount, currency = _extract_balance([])
+        assert amount == Decimal("0")
+        assert currency == "EUR"
+
+    def test_flat_array_format(self) -> None:
+        """Test flat array format [amount, currency]."""
+        amount, currency = _extract_balance([250.75, "EUR"])
+        assert amount == Decimal("250.75")
+        assert currency == "EUR"
+
+    def test_flat_array_single_value(self) -> None:
+        """Test flat array with single numeric value defaults to EUR."""
+        amount, currency = _extract_balance([100.0])
+        assert amount == Decimal("100.0")
+        assert currency == "EUR"
+
+    def test_negative_balance(self) -> None:
+        """Test negative balance (e.g., credit card)."""
+        amount, currency = _extract_balance([[-500.25, "EUR"]])
+        assert amount == Decimal("-500.25")
+        assert currency == "EUR"
+
+    def test_large_balance(self) -> None:
+        """Test large balance amount."""
+        amount, currency = _extract_balance([[1000000.99, "EUR"]])
+        assert amount == Decimal("1000000.99")
+        assert currency == "EUR"

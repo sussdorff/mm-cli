@@ -24,21 +24,28 @@ from mm_cli.applescript import (
     EXPORT_FORMATS,
     AppleScriptError,
     MoneyMoneyNotRunningError,
+    create_bank_transfer,
     export_accounts,
     export_categories,
+    export_portfolio,
     export_transactions,
     find_category_by_name,
     set_transaction_category,
+    set_transaction_checkmark,
+    set_transaction_comment,
+    validate_iban,
 )
 from mm_cli.models import CategoryType, CategoryUsage
 from mm_cli.output import (
     OutputFormat,
+    console,
     output_accounts,
     output_balance_history,
     output_cashflow,
     output_categories,
     output_category_usage,
     output_merchants,
+    output_portfolio,
     output_recurring,
     output_spending,
     output_suggestions,
@@ -148,6 +155,10 @@ def transactions(
         str | None,
         typer.Option("--account", "-a", help="Filter by account ID or IBAN"),
     ] = None,
+    group: Annotated[
+        list[str] | None,
+        typer.Option("--group", "-g", help="Filter by account group (repeatable)"),
+    ] = None,
     from_date: Annotated[
         str | None,
         typer.Option("--from", "-f", help="Start date (YYYY-MM-DD)"),
@@ -164,12 +175,42 @@ def transactions(
         bool,
         typer.Option("--uncategorized", "-u", help="Show only uncategorized transactions"),
     ] = False,
+    min_amount: Annotated[
+        float | None,
+        typer.Option("--min-amount", help="Minimum transaction amount (absolute value)"),
+    ] = None,
+    max_amount: Annotated[
+        float | None,
+        typer.Option("--max-amount", help="Maximum transaction amount (absolute value)"),
+    ] = None,
+    sort: Annotated[
+        str | None,
+        typer.Option("--sort", help="Sort by: date, amount, or name"),
+    ] = None,
+    reverse: Annotated[
+        bool,
+        typer.Option("--reverse", "-r", help="Reverse sort order"),
+    ] = False,
+    checkmark: Annotated[
+        str | None,
+        typer.Option("--checkmark", help="Filter by checkmark status: on or off"),
+    ] = None,
     format: Annotated[
         OutputFormat,
         typer.Option("--format", help="Output format"),
     ] = OutputFormat.TABLE,
 ) -> None:
     """List transactions with optional filtering."""
+    # Validate --sort value
+    if sort is not None and sort not in ("date", "amount", "name"):
+        print_error(f"Invalid sort field: {sort}. Use 'date', 'amount', or 'name'.")
+        raise typer.Exit(1)
+
+    # Validate --checkmark value
+    if checkmark is not None and checkmark not in ("on", "off"):
+        print_error(f"Invalid checkmark value: {checkmark}. Use 'on' or 'off'.")
+        raise typer.Exit(1)
+
     try:
         # Parse dates if provided
         start = parse_date(from_date) if from_date else None
@@ -182,6 +223,18 @@ def transactions(
             to_date=end,
         )
 
+        # Apply group filter
+        if group:
+            all_accounts = export_accounts()
+            group_lower = [g.lower() for g in group]
+            filtered_accs = [a for a in all_accounts if a.group.lower() in group_lower]
+            account_ids = (
+                {a.id for a in filtered_accs}
+                | {a.iban for a in filtered_accs if a.iban}
+                | {a.account_number for a in filtered_accs if a.account_number}
+            )
+            txs = [tx for tx in txs if tx.account_id in account_ids]
+
         # Apply category filter
         if uncategorized:
             txs = [tx for tx in txs if not tx.category_name]
@@ -191,9 +244,31 @@ def transactions(
                 tx for tx in txs if tx.category_name and category_lower in tx.category_name.lower()
             ]
 
+        # Amount range filter
+        if min_amount is not None:
+            txs = [tx for tx in txs if abs(tx.amount) >= min_amount]
+        if max_amount is not None:
+            txs = [tx for tx in txs if abs(tx.amount) <= max_amount]
+
+        # Checkmark filter
+        if checkmark is not None:
+            checked = checkmark == "on"
+            txs = [tx for tx in txs if tx.checkmark == checked]
+
         if not txs:
             print_warning("No transactions found matching the criteria.")
             return
+
+        # Sorting
+        if sort:
+            if sort == "date":
+                txs.sort(key=lambda tx: tx.booking_date, reverse=reverse)
+            elif sort == "amount":
+                txs.sort(key=lambda tx: abs(tx.amount), reverse=not reverse)
+            elif sort == "name":
+                txs.sort(key=lambda tx: tx.name.lower(), reverse=reverse)
+        elif reverse:
+            txs.reverse()
 
         output_transactions(txs, format)
 
@@ -399,6 +474,185 @@ def set_category(
         handle_applescript_error(e)
 
 
+@app.command("set-checkmark")
+def set_checkmark(
+    transaction_id: Annotated[
+        str,
+        typer.Argument(help="Transaction ID (from transactions export)"),
+    ],
+    state: Annotated[
+        str,
+        typer.Argument(help="Checkmark state: 'on' or 'off'"),
+    ],
+) -> None:
+    """Set or clear the checkmark on a transaction.
+
+    Useful for reconciliation marking workflows.
+
+    Examples:
+        mm set-checkmark 12345 on
+        mm set-checkmark 12345 off
+    """
+    if state not in ("on", "off"):
+        print_error(f"Invalid state: {state}. Use 'on' or 'off'.")
+        raise typer.Exit(1)
+
+    try:
+        set_transaction_checkmark(transaction_id, checked=state == "on")
+        print_success(f"Transaction {transaction_id} checkmark set to: {state}")
+    except Exception as e:
+        handle_applescript_error(e)
+
+
+@app.command("set-comment")
+def set_comment_cmd(
+    transaction_id: Annotated[
+        str,
+        typer.Argument(help="Transaction ID (from transactions export)"),
+    ],
+    comment: Annotated[
+        str,
+        typer.Argument(help="Comment text (use empty string '' to clear)"),
+    ],
+) -> None:
+    """Set a comment/note on a transaction.
+
+    Useful for annotation workflows. Use an empty string to clear
+    an existing comment.
+
+    Examples:
+        mm set-comment 12345 "Reviewed and approved"
+        mm set-comment 12345 ""
+    """
+    try:
+        set_transaction_comment(transaction_id, comment)
+        if comment:
+            print_success(f"Transaction {transaction_id} comment set to: {comment}")
+        else:
+            print_success(f"Transaction {transaction_id} comment cleared.")
+    except Exception as e:
+        handle_applescript_error(e)
+
+
+@app.command()
+def transfer(
+    from_account: Annotated[
+        str,
+        typer.Option("--from-account", "-f", help="Source account name or IBAN"),
+    ],
+    to: Annotated[
+        str,
+        typer.Option("--to", "-t", help="Recipient name"),
+    ],
+    iban: Annotated[
+        str,
+        typer.Option("--iban", "-i", help="Recipient IBAN"),
+    ],
+    amount: Annotated[
+        float,
+        typer.Option("--amount", "-a", help="Amount to transfer (positive)"),
+    ],
+    purpose: Annotated[
+        str,
+        typer.Option("--purpose", "-p", help="Transfer purpose/reference"),
+    ],
+    outbox: Annotated[
+        bool,
+        typer.Option("--outbox", help="Queue in outbox instead of opening UI"),
+    ] = False,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Show what would be done without executing"),
+    ] = False,
+    confirm: Annotated[
+        bool,
+        typer.Option("--confirm", help="Skip interactive confirmation"),
+    ] = False,
+) -> None:
+    """Create a SEPA bank transfer through MoneyMoney.
+
+    Transfers money from a source account to a recipient. Requires
+    confirmation by default for safety.
+
+    Examples:
+        mm transfer -f Girokonto -t "Max" -i DE89... -a 100 -p "R123"
+        mm transfer -f Girokonto -t "Max" -i DE89... --dry-run
+        mm transfer -f Girokonto -t "Max" -i DE89... --confirm --outbox
+    """
+    try:
+        # Validate amount
+        if amount <= 0:
+            print_error("Amount must be positive.")
+            raise typer.Exit(1)
+
+        # Validate IBAN format
+        try:
+            normalized_iban = validate_iban(iban)
+        except ValueError as e:
+            print_error(str(e))
+            raise typer.Exit(1) from e
+
+        # Look up source account
+        accs = export_accounts()
+        from_account_lower = from_account.lower()
+        matched = None
+        for acc in accs:
+            if (
+                from_account_lower == acc.name.lower()
+                or from_account_lower == acc.iban.lower()
+                or from_account_lower == acc.account_number.lower()
+            ):
+                matched = acc
+                break
+
+        if not matched:
+            print_error(f"Account not found: {from_account}")
+            print_info("Use 'mm accounts' to list available accounts.")
+            raise typer.Exit(1)
+
+        # Determine the account identifier for AppleScript
+        account_identifier = matched.iban or matched.account_number or matched.name
+
+        # Show transfer summary
+        console.print("\n[bold]Transfer Summary:[/bold]")
+        console.print(f"  From:    {matched.name} ({account_identifier})")
+        console.print(f"  To:      {to}")
+        console.print(f"  IBAN:    {normalized_iban}")
+        console.print(f"  Amount:  {amount:,.2f} EUR")
+        console.print(f"  Purpose: {purpose}")
+        if outbox:
+            console.print("  Mode:    Queue in outbox")
+        console.print()
+
+        # Dry run: show summary and exit
+        if dry_run:
+            print_info("Dry run - no transfer executed.")
+            return
+
+        # Confirmation
+        if not confirm:
+            if not typer.confirm("Execute this transfer?"):
+                print_warning("Transfer cancelled.")
+                raise typer.Exit(0)
+
+        # Execute transfer
+        create_bank_transfer(
+            account_number=account_identifier,
+            recipient=to,
+            iban=normalized_iban,
+            amount=amount,
+            purpose=purpose,
+            outbox=outbox,
+        )
+
+        print_success(f"Transfer of {amount:,.2f} EUR to {to} initiated successfully.")
+
+    except typer.Exit:
+        raise
+    except Exception as e:
+        handle_applescript_error(e)
+
+
 @app.command("suggest-rules")
 def suggest_rules_cmd(
     from_date: Annotated[
@@ -467,6 +721,54 @@ def suggest_rules_cmd(
             return
 
         output_suggestions(suggestions, format)
+
+    except Exception as e:
+        handle_applescript_error(e)
+
+
+@app.command()
+def portfolio(
+    account: Annotated[
+        str | None,
+        typer.Option("--account", "-a", help="Filter by account name"),
+    ] = None,
+    format: Annotated[
+        OutputFormat,
+        typer.Option("--format", "-f", help="Output format"),
+    ] = OutputFormat.TABLE,
+) -> None:
+    """View securities holdings and investment portfolio.
+
+    Shows all securities across depot/investment accounts with
+    current prices, market values, and gain/loss information.
+
+    Examples:
+        mm portfolio
+        mm portfolio --account "Depot"
+        mm portfolio --format json
+    """
+    try:
+        portfolios = export_portfolio()
+
+        # Filter by account name if provided
+        if account:
+            account_lower = account.lower()
+            portfolios = [
+                p for p in portfolios
+                if account_lower in p.account_name.lower()
+            ]
+
+        if not portfolios:
+            print_warning("No portfolio data found.")
+            return
+
+        # Filter out empty portfolios (no securities)
+        non_empty = [p for p in portfolios if p.securities]
+        if not non_empty:
+            print_warning("No securities found in portfolio accounts.")
+            return
+
+        output_portfolio(non_empty, format)
 
     except Exception as e:
         handle_applescript_error(e)

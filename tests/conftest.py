@@ -10,6 +10,8 @@ from mm_cli.models import (
     AccountType,
     Category,
     CategoryType,
+    Portfolio,
+    Security,
     Transaction,
 )
 
@@ -452,4 +454,76 @@ def multi_group_accounts() -> list[Account]:
             iban="DE55370400440999888777",
             group="cognovis",
         ),
+    ]
+
+
+@pytest.fixture
+def sample_portfolios() -> list[Portfolio]:
+    """Sample portfolio data for testing."""
+    return [
+        Portfolio(
+            account_name="Depot Commerzbank",
+            account_id="depot-uuid-1",
+            securities=[
+                Security(
+                    name="iShares Core MSCI World",
+                    isin="IE00B4L5Y983",
+                    quantity=50.0,
+                    purchase_price=65.00,
+                    current_price=78.50,
+                    currency="EUR",
+                    market_value=3925.00,
+                    gain_loss=675.00,
+                    gain_loss_percent=20.77,
+                    asset_class="Equity",
+                ),
+                Security(
+                    name="Xtrackers DAX ETF",
+                    isin="LU0274211480",
+                    quantity=20.0,
+                    purchase_price=140.00,
+                    current_price=132.50,
+                    currency="EUR",
+                    market_value=2650.00,
+                    gain_loss=-150.00,
+                    gain_loss_percent=-5.36,
+                    asset_class="Equity",
+                ),
+            ],
+            total_value=6575.00,
+            total_gain_loss=525.00,
+        ),
+    ]
+
+
+@pytest.fixture
+def sample_plist_portfolio() -> list[dict]:
+    """Sample plist data as returned by MoneyMoney for portfolio export."""
+    return [
+        {
+            "name": "Depot Commerzbank",
+            "uuid": "depot-uuid-1",
+            "securities": [
+                {
+                    "name": "iShares Core MSCI World",
+                    "isin": "IE00B4L5Y983",
+                    "quantity": 50.0,
+                    "purchasePrice": 65.00,
+                    "price": 78.50,
+                    "currency": "EUR",
+                    "marketValue": 3925.00,
+                    "assetClass": "Equity",
+                },
+                {
+                    "name": "Xtrackers DAX ETF",
+                    "isin": "LU0274211480",
+                    "quantity": 20.0,
+                    "purchasePrice": 140.00,
+                    "price": 132.50,
+                    "currency": "EUR",
+                    "marketValue": 2650.00,
+                    "assetClass": "Equity",
+                },
+            ],
+        },
     ]

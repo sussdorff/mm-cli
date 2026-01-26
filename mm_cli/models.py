@@ -289,3 +289,55 @@ class BalanceSnapshot:
             "balance": str(self.balance),
             "change": str(self.change),
         }
+
+
+@dataclass
+class Security:
+    """Represents a single security/holding in a portfolio."""
+
+    name: str
+    isin: str
+    quantity: float
+    purchase_price: float
+    current_price: float
+    currency: str
+    market_value: float
+    gain_loss: float
+    gain_loss_percent: float
+    asset_class: str = ""
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "name": self.name,
+            "isin": self.isin,
+            "quantity": self.quantity,
+            "purchase_price": self.purchase_price,
+            "current_price": self.current_price,
+            "currency": self.currency,
+            "market_value": self.market_value,
+            "gain_loss": self.gain_loss,
+            "gain_loss_percent": self.gain_loss_percent,
+            "asset_class": self.asset_class,
+        }
+
+
+@dataclass
+class Portfolio:
+    """Represents a portfolio/depot account with its securities."""
+
+    account_name: str
+    account_id: str
+    securities: list[Security] = field(default_factory=list)
+    total_value: float = 0.0
+    total_gain_loss: float = 0.0
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "account_name": self.account_name,
+            "account_id": self.account_id,
+            "securities": [s.to_dict() for s in self.securities],
+            "total_value": self.total_value,
+            "total_gain_loss": self.total_gain_loss,
+        }

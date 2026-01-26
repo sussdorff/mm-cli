@@ -11,6 +11,8 @@ from mm_cli.models import (
     AccountType,
     Category,
     CategoryType,
+    Portfolio,
+    Security,
     Transaction,
 )
 
@@ -478,6 +480,163 @@ def set_transaction_comment(transaction_id: str, comment: str) -> bool:
     )
     run_applescript(script)
     return True
+
+
+def validate_iban(iban: str) -> str:
+    """Validate and normalize an IBAN.
+
+    Strips spaces, converts to uppercase, and checks basic format:
+    2-letter country code + 2 check digits + up to 30 alphanumeric chars.
+
+    Args:
+        iban: The IBAN string to validate.
+
+    Returns:
+        The normalized IBAN (uppercase, no spaces).
+
+    Raises:
+        ValueError: If the IBAN format is invalid.
+    """
+    import re
+
+    # Normalize: strip spaces, uppercase
+    normalized = iban.replace(" ", "").upper()
+
+    # Basic format: 2 letters + 2 digits + up to 30 alphanumeric chars
+    pattern = r"^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$"
+    if not re.match(pattern, normalized):
+        raise ValueError(
+            f"Invalid IBAN format: {iban}. "
+            "Expected: 2-letter country code + 2 check digits + up to 30 alphanumeric characters."
+        )
+
+    return normalized
+
+
+def create_bank_transfer(
+    account_number: str,
+    recipient: str,
+    iban: str,
+    amount: float,
+    purpose: str,
+    outbox: bool = False,
+) -> str:
+    """Create a SEPA bank transfer through MoneyMoney.
+
+    Args:
+        account_number: Source account number or IBAN.
+        recipient: Recipient name.
+        iban: Recipient IBAN.
+        amount: Transfer amount (positive).
+        purpose: Transfer purpose/reference.
+        outbox: If True, queue in outbox instead of opening UI.
+
+    Returns:
+        The output from the AppleScript.
+
+    Raises:
+        AppleScriptError: If the transfer fails.
+        ValueError: If the IBAN is invalid.
+    """
+    # Validate and normalize IBAN
+    normalized_iban = validate_iban(iban)
+
+    # Escape quotes in strings
+    escaped_recipient = recipient.replace('"', '\\"')
+    escaped_purpose = purpose.replace('"', '\\"')
+
+    script = (
+        f'tell application "MoneyMoney" to create bank transfer '
+        f'at account "{account_number}" '
+        f'to recipient "{escaped_recipient}" '
+        f'iban "{normalized_iban}" '
+        f'amount {amount} '
+        f'purpose "{escaped_purpose}"'
+    )
+
+    if outbox:
+        script += " into outbox"
+
+    return run_applescript(script)
+
+
+def export_portfolio(account_id: str | None = None) -> list[Portfolio]:
+    """Export portfolio/securities data from MoneyMoney.
+
+    Args:
+        account_id: Optional account ID to filter by.
+
+    Returns:
+        List of Portfolio objects containing securities holdings.
+    """
+    if account_id:
+        script = (
+            f'tell application "MoneyMoney" to export portfolio '
+            f'of account id "{account_id}"'
+        )
+    else:
+        script = 'tell application "MoneyMoney" to export portfolio'
+
+    data = _run_export_script(script)
+
+    # The portfolio export can be a list of account portfolio dicts
+    # or a single dict depending on whether filtered by account
+    if isinstance(data, dict):
+        data = [data]
+
+    portfolios = []
+    for item in data:
+        account_name = item.get("name", item.get("accountName", ""))
+        acct_id = str(item.get("uuid", item.get("accountUuid", "")))
+
+        securities = []
+        for sec in item.get("securities", []):
+            quantity = float(sec.get("quantity", 0))
+            purchase_price = float(sec.get("purchasePrice", 0))
+            current_price = float(sec.get("price", sec.get("currentPrice", 0)))
+            currency = sec.get("currency", "EUR")
+            market_value = float(sec.get("marketValue", quantity * current_price))
+
+            # Calculate gain/loss if not provided
+            cost_basis = quantity * purchase_price
+            gain_loss = float(sec.get("gainLoss", market_value - cost_basis))
+            if cost_basis != 0:
+                gain_loss_pct = float(
+                    sec.get(
+                        "gainLossPercent",
+                        (gain_loss / cost_basis) * 100 if cost_basis else 0,
+                    )
+                )
+            else:
+                gain_loss_pct = float(sec.get("gainLossPercent", 0))
+
+            security = Security(
+                name=sec.get("name", ""),
+                isin=sec.get("isin", sec.get("ISIN", "")),
+                quantity=quantity,
+                purchase_price=purchase_price,
+                current_price=current_price,
+                currency=currency,
+                market_value=market_value,
+                gain_loss=gain_loss,
+                gain_loss_percent=gain_loss_pct,
+                asset_class=sec.get("assetClass", sec.get("category", "")),
+            )
+            securities.append(security)
+
+        total_value = sum(s.market_value for s in securities)
+        total_gain_loss = sum(s.gain_loss for s in securities)
+
+        portfolio = Portfolio(
+            account_name=account_name,
+            account_id=acct_id,
+            securities=securities,
+            total_value=total_value,
+            total_gain_loss=total_gain_loss,
+        )
+        portfolios.append(portfolio)
+
+    return portfolios
 
 
 def find_category_by_name(name: str) -> Category | None:

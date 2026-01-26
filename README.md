@@ -41,7 +41,16 @@ mm transactions --category Lebensmittel
 mm transactions --uncategorized
 ```
 
-Filter by account with `--account <IBAN>`.
+Filter by account with `--account <IBAN>`, or by account group with `--group Privat`.
+
+You can also filter by amount range, sort results, and filter by checkmark status:
+
+```bash
+mm transactions --min-amount 50 --max-amount 500
+mm transactions --sort amount              # biggest first
+mm transactions --sort date --reverse      # newest first
+mm transactions --checkmark off            # only unchecked
+```
 
 ### Analyze your finances
 
@@ -100,6 +109,28 @@ mm export --from 2025-01-01 --to 2025-12-31 --format csv -o ~/export.csv
 mm export --account "DE89..." --format sta
 ```
 
+### View investment portfolio
+
+See your securities holdings, asset allocation, and performance across depot accounts:
+
+```bash
+mm portfolio
+mm portfolio --account Depot
+mm portfolio --format json
+```
+
+### Create bank transfers
+
+Initiate SEPA transfers through MoneyMoney:
+
+```bash
+mm transfer -f Girokonto -t "Max Mustermann" -i DE89370400440532013000 -a 100.00 -p "Invoice 2026-001"
+mm transfer -f Girokonto -t "Max Mustermann" -i DE89370400440532013000 -a 100.00 -p "Invoice" --dry-run
+mm transfer -f Girokonto -t "Max Mustermann" -i DE89370400440532013000 -a 100.00 -p "Invoice" --outbox --confirm
+```
+
+Use `--dry-run` to preview without executing, `--confirm` to skip interactive confirmation, and `--outbox` to queue the transfer without opening the UI.
+
 ### Manage categories
 
 View all categories with their hierarchy and existing rules:
@@ -115,6 +146,14 @@ To re-categorize a transaction:
 ```bash
 mm set-category <transaction-id> Lebensmittel
 mm set-category <transaction-id> Lebensmittel --dry-run  # preview first
+```
+
+Mark transactions as checked or add comments for reconciliation workflows:
+
+```bash
+mm set-checkmark <transaction-id> on
+mm set-checkmark <transaction-id> off
+mm set-comment <transaction-id> "Reviewed 2026-01"
 ```
 
 ### Get rule suggestions for uncategorized transactions
