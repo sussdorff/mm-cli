@@ -21,3 +21,6 @@ htmlcov/
 
 # uv
 uv.lock
+
+# Claude Code
+.claude
