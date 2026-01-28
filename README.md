@@ -19,6 +19,21 @@ uv sync
 
 All commands are available via `mm`. Run `mm --help` for a full list, or `mm <command> --help` for details on any command.
 
+## Configuration
+
+Run `mm init` to set up your personal configuration:
+
+```bash
+mm init
+```
+
+This interactive command reads your MoneyMoney categories and account groups, then asks you to configure:
+
+- **Transfer category**: The top-level category group containing internal transfers (e.g., transfers between your own accounts, credit card settlements). Transactions in this category are excluded from analysis by default.
+- **Excluded account groups**: Account groups to hide when using `--active` (e.g., a group for closed/dissolved accounts).
+
+Configuration is saved to `~/.config/mm-cli/config.toml`. The tool works without configuration — it just won't filter transfers or exclude account groups until you set it up.
+
 ## What you can do
 
 ### See your accounts and balances
@@ -29,7 +44,7 @@ View all accounts with their current balances, grouped by the account groups you
 mm accounts
 ```
 
-You can see them organized by group with subtotals using `mm accounts --hierarchy`, or focus on specific groups with `mm accounts --group Privat`. To exclude closed accounts, use `mm accounts --active`.
+You can see them organized by group with subtotals using `mm accounts --hierarchy`, or focus on specific groups with `mm accounts --group Privat`. To exclude closed accounts, use `mm accounts --active` (excludes groups configured via `mm init`).
 
 ### Browse and filter transactions
 
@@ -54,7 +69,7 @@ mm transactions --checkmark off            # only unchecked
 
 ### Analyze your finances
 
-All analysis commands filter out internal transfers (Umbuchungen) by default — both by IBAN matching against your own accounts and by MoneyMoney's transfer category tree. When using `--group`, cross-group transfers (e.g. salary from your company account to your personal account) are kept as real cashflow. Use `--include-transfers` to disable filtering, or `--transfers-only` to show *only* the transfers (useful for reviewing own-account movements like credit card settlements or savings transfers).
+All analysis commands filter out internal transfers by default — both by IBAN matching against your own accounts and by the transfer category configured via `mm init`. When using `--group`, cross-group transfers (e.g. salary from your company account to your personal account) are kept as real cashflow. Use `--include-transfers` to disable filtering, or `--transfers-only` to show *only* the transfers (useful for reviewing own-account movements like credit card settlements or savings transfers).
 
 **Spending by category** — see where your money goes, with budget tracking:
 
