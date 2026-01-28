@@ -91,7 +91,14 @@ def output_accounts(
         writer = csv.DictWriter(
             output,
             fieldnames=[
-                "id", "name", "group", "bank_name", "balance", "currency", "account_type", "iban",
+                "id",
+                "name",
+                "group",
+                "bank_name",
+                "balance",
+                "currency",
+                "account_type",
+                "iban",
             ],
         )
         writer.writeheader()
@@ -165,7 +172,10 @@ def _output_accounts_hierarchy(accounts: list[Account]) -> None:
         # Section header
         table.add_row(
             f"[bold]{group_name}[/bold]",
-            "", "", "", "",
+            "",
+            "",
+            "",
+            "",
             style="on grey15",
         )
 
@@ -179,12 +189,11 @@ def _output_accounts_hierarchy(accounts: list[Account]) -> None:
             )
 
         # Subtotal for group
-        group_total = sum(
-            a.balance for a in group_accounts if a.currency == "EUR"
-        )
+        group_total = sum(a.balance for a in group_accounts if a.currency == "EUR")
         table.add_row(
             "  [dim]Subtotal[/dim]",
-            "", "",
+            "",
+            "",
             f"[bold]{format_currency(group_total, 'EUR')}[/bold]",
             "",
             style="dim",
@@ -422,21 +431,30 @@ def output_suggestions(
         writer = csv.DictWriter(
             output,
             fieldnames=[
-                "pattern", "suggested_category", "category_path",
-                "match_count", "total_amount", "confidence", "existing_rule",
+                "pattern",
+                "suggested_category",
+                "category_path",
+                "match_count",
+                "total_amount",
+                "confidence",
+                "existing_rule",
             ],
         )
         writer.writeheader()
         for s in suggestions:
-            writer.writerow({
-                "pattern": s.pattern,
-                "suggested_category": s.suggested_category,
-                "category_path": s.category_path,
-                "match_count": s.match_count,
-                "total_amount": str(s.total_amount),
-                "confidence": s.confidence,
-                "existing_rule": s.existing_rule.replace("\n", " ")[:60] if s.existing_rule else "",
-            })
+            writer.writerow(
+                {
+                    "pattern": s.pattern,
+                    "suggested_category": s.suggested_category,
+                    "category_path": s.category_path,
+                    "match_count": s.match_count,
+                    "total_amount": str(s.total_amount),
+                    "confidence": s.confidence,
+                    "existing_rule": s.existing_rule.replace("\n", " ")[:60]
+                    if s.existing_rule
+                    else "",
+                }
+            )
         console.print(output.getvalue())
         return
 
@@ -539,9 +557,15 @@ def output_spending(
     if format == OutputFormat.CSV:
         output = io.StringIO()
         fieldnames = [
-            "category_name", "category_path", "category_type",
-            "actual", "budget", "budget_period", "remaining",
-            "percent_used", "transaction_count",
+            "category_name",
+            "category_path",
+            "category_type",
+            "actual",
+            "budget",
+            "budget_period",
+            "remaining",
+            "percent_used",
+            "transaction_count",
         ]
         if any(r.compare_actual is not None for r in results):
             fieldnames.extend(["compare_actual", "compare_change"])
@@ -643,6 +667,7 @@ def output_spending(
 
     # Summary
     from decimal import Decimal
+
     total_expense = sum(r.actual for r in results if r.actual < 0)
     total_income = sum(r.actual for r in results if r.actual > 0)
     net = total_income + total_expense
@@ -686,13 +711,15 @@ def output_cashflow(
         )
         writer.writeheader()
         for r in results:
-            writer.writerow({
-                "period_label": r.period_label,
-                "income": str(r.income),
-                "expenses": str(r.expenses),
-                "net": str(r.net),
-                "transaction_count": r.transaction_count,
-            })
+            writer.writerow(
+                {
+                    "period_label": r.period_label,
+                    "income": str(r.income),
+                    "expenses": str(r.expenses),
+                    "net": str(r.net),
+                    "transaction_count": r.transaction_count,
+                }
+            )
         console.print(output.getvalue())
         return
 
@@ -739,22 +766,30 @@ def output_recurring(
         writer = csv.DictWriter(
             output,
             fieldnames=[
-                "merchant_name", "category_name", "avg_amount", "frequency",
-                "occurrence_count", "total_annual_cost", "last_date", "amount_variance",
+                "merchant_name",
+                "category_name",
+                "avg_amount",
+                "frequency",
+                "occurrence_count",
+                "total_annual_cost",
+                "last_date",
+                "amount_variance",
             ],
         )
         writer.writeheader()
         for r in results:
-            writer.writerow({
-                "merchant_name": r.merchant_name,
-                "category_name": r.category_name,
-                "avg_amount": str(r.avg_amount),
-                "frequency": r.frequency,
-                "occurrence_count": r.occurrence_count,
-                "total_annual_cost": str(r.total_annual_cost),
-                "last_date": r.last_date.isoformat(),
-                "amount_variance": str(r.amount_variance),
-            })
+            writer.writerow(
+                {
+                    "merchant_name": r.merchant_name,
+                    "category_name": r.category_name,
+                    "avg_amount": str(r.avg_amount),
+                    "frequency": r.frequency,
+                    "occurrence_count": r.occurrence_count,
+                    "total_annual_cost": str(r.total_annual_cost),
+                    "last_date": r.last_date.isoformat(),
+                    "amount_variance": str(r.amount_variance),
+                }
+            )
         console.print(output.getvalue())
         return
 
@@ -803,21 +838,28 @@ def output_merchants(
         writer = csv.DictWriter(
             output,
             fieldnames=[
-                "merchant_name", "transaction_count", "total_amount",
-                "avg_amount", "categories", "first_date", "last_date",
+                "merchant_name",
+                "transaction_count",
+                "total_amount",
+                "avg_amount",
+                "categories",
+                "first_date",
+                "last_date",
             ],
         )
         writer.writeheader()
         for r in results:
-            writer.writerow({
-                "merchant_name": r.merchant_name,
-                "transaction_count": r.transaction_count,
-                "total_amount": str(r.total_amount),
-                "avg_amount": str(r.avg_amount),
-                "categories": ", ".join(r.categories),
-                "first_date": r.first_date.isoformat() if r.first_date else "",
-                "last_date": r.last_date.isoformat() if r.last_date else "",
-            })
+            writer.writerow(
+                {
+                    "merchant_name": r.merchant_name,
+                    "transaction_count": r.transaction_count,
+                    "total_amount": str(r.total_amount),
+                    "avg_amount": str(r.avg_amount),
+                    "categories": ", ".join(r.categories),
+                    "first_date": r.first_date.isoformat() if r.first_date else "",
+                    "last_date": r.last_date.isoformat() if r.last_date else "",
+                }
+            )
         console.print(output.getvalue())
         return
 
@@ -862,22 +904,30 @@ def output_top_customers(
         writer = csv.DictWriter(
             output,
             fieldnames=[
-                "merchant_name", "transaction_count", "total_amount",
-                "pct_of_total", "avg_amount", "categories", "first_date", "last_date",
+                "merchant_name",
+                "transaction_count",
+                "total_amount",
+                "pct_of_total",
+                "avg_amount",
+                "categories",
+                "first_date",
+                "last_date",
             ],
         )
         writer.writeheader()
         for r in results:
-            writer.writerow({
-                "merchant_name": r.merchant_name,
-                "transaction_count": r.transaction_count,
-                "total_amount": str(r.total_amount),
-                "pct_of_total": str(r.pct_of_total) if r.pct_of_total else "",
-                "avg_amount": str(r.avg_amount),
-                "categories": ", ".join(r.categories),
-                "first_date": r.first_date.isoformat() if r.first_date else "",
-                "last_date": r.last_date.isoformat() if r.last_date else "",
-            })
+            writer.writerow(
+                {
+                    "merchant_name": r.merchant_name,
+                    "transaction_count": r.transaction_count,
+                    "total_amount": str(r.total_amount),
+                    "pct_of_total": str(r.pct_of_total) if r.pct_of_total else "",
+                    "avg_amount": str(r.avg_amount),
+                    "categories": ", ".join(r.categories),
+                    "first_date": r.first_date.isoformat() if r.first_date else "",
+                    "last_date": r.last_date.isoformat() if r.last_date else "",
+                }
+            )
         console.print(output.getvalue())
         return
 
@@ -932,12 +982,14 @@ def output_balance_history(
         )
         writer.writeheader()
         for r in results:
-            writer.writerow({
-                "period_label": r.period_label,
-                "account_name": r.account_name,
-                "balance": str(r.balance),
-                "change": str(r.change),
-            })
+            writer.writerow(
+                {
+                    "period_label": r.period_label,
+                    "account_name": r.account_name,
+                    "balance": str(r.balance),
+                    "change": str(r.change),
+                }
+            )
         console.print(output.getvalue())
         return
 
@@ -1019,27 +1071,37 @@ def output_portfolio(
         writer = csv.DictWriter(
             output,
             fieldnames=[
-                "account", "name", "isin", "quantity", "purchase_price",
-                "current_price", "currency", "market_value", "gain_loss",
-                "gain_loss_percent", "asset_class",
+                "account",
+                "name",
+                "isin",
+                "quantity",
+                "purchase_price",
+                "current_price",
+                "currency",
+                "market_value",
+                "gain_loss",
+                "gain_loss_percent",
+                "asset_class",
             ],
         )
         writer.writeheader()
         for p in portfolios:
             for s in p.securities:
-                writer.writerow({
-                    "account": p.account_name,
-                    "name": s.name,
-                    "isin": s.isin,
-                    "quantity": s.quantity,
-                    "purchase_price": s.purchase_price,
-                    "current_price": s.current_price,
-                    "currency": s.currency,
-                    "market_value": s.market_value,
-                    "gain_loss": s.gain_loss,
-                    "gain_loss_percent": s.gain_loss_percent,
-                    "asset_class": s.asset_class,
-                })
+                writer.writerow(
+                    {
+                        "account": p.account_name,
+                        "name": s.name,
+                        "isin": s.isin,
+                        "quantity": s.quantity,
+                        "purchase_price": s.purchase_price,
+                        "current_price": s.current_price,
+                        "currency": s.currency,
+                        "market_value": s.market_value,
+                        "gain_loss": s.gain_loss,
+                        "gain_loss_percent": s.gain_loss_percent,
+                        "asset_class": s.asset_class,
+                    }
+                )
         console.print(output.getvalue())
         return
 
@@ -1095,7 +1157,10 @@ def output_portfolio(
             table.add_row(
                 "",
                 f"[bold]Subtotal: {p.account_name}[/bold]",
-                "", "", "", "",
+                "",
+                "",
+                "",
+                "",
                 f"[bold]{p.total_value:,.2f}[/bold]",
                 f"[bold]{sub_gl}[/bold]",
                 "",
@@ -1110,13 +1175,9 @@ def output_portfolio(
     # Grand total
     console.print(f"\n[bold]Total Portfolio Value:[/bold] {grand_total_value:,.2f}")
     if grand_total_gain_loss > 0:
-        console.print(
-            f"[bold]Total Gain/Loss:[/bold] [green]+{grand_total_gain_loss:,.2f}[/green]"
-        )
+        console.print(f"[bold]Total Gain/Loss:[/bold] [green]+{grand_total_gain_loss:,.2f}[/green]")
     elif grand_total_gain_loss < 0:
-        console.print(
-            f"[bold]Total Gain/Loss:[/bold] [red]{grand_total_gain_loss:,.2f}[/red]"
-        )
+        console.print(f"[bold]Total Gain/Loss:[/bold] [red]{grand_total_gain_loss:,.2f}[/red]")
     else:
         console.print(f"[bold]Total Gain/Loss:[/bold] {grand_total_gain_loss:,.2f}")
 

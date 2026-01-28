@@ -104,7 +104,8 @@ class TestCategoryBudgetFields:
     def test_budget_fields_in_to_dict(self) -> None:
         """Test that budget_period and budget_available are serialized."""
         cat = Category(
-            id="test", name="Food",
+            id="test",
+            name="Food",
             budget=Decimal("500"),
             budget_period="monthly",
             budget_available=Decimal("50"),

@@ -60,7 +60,8 @@ class TestCheckExistingRules:
     def test_finds_matching_rule(self) -> None:
         cats = [
             Category(
-                id="1", name="Einkaufen",
+                id="1",
+                name="Einkaufen",
                 rules='"REWE" OR Aldi OR Lidl',
                 path="Haushalt\\Einkaufen",
             ),
@@ -78,7 +79,7 @@ class TestCheckExistingRules:
 
     def test_case_insensitive(self) -> None:
         cats = [
-            Category(id="1", name="KI", rules='Anthropic OR OpenAI'),
+            Category(id="1", name="KI", rules="Anthropic OR OpenAI"),
         ]
         cat_name, _, _ = _check_existing_rules("anthropic", cats)
         assert cat_name == "KI"
@@ -166,7 +167,8 @@ class TestSuggestRules:
         ]
         cats = [
             Category(
-                id="cat1", name="Haushalt Einzahlung",
+                id="cat1",
+                name="Haushalt Einzahlung",
                 rules='name:"Jenny Sussdorff" AND Nebenkosten',
                 path="Haushalt\\Haushalt Einnahmen\\Haushalt Einzahlung",
             ),

@@ -550,7 +550,7 @@ def create_bank_transfer(
         f'at account "{account_number}" '
         f'to recipient "{escaped_recipient}" '
         f'iban "{normalized_iban}" '
-        f'amount {amount} '
+        f"amount {amount} "
         f'purpose "{escaped_purpose}"'
     )
 

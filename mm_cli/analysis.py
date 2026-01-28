@@ -17,20 +17,32 @@ from mm_cli.models import (
 )
 from mm_cli.rules import _extract_merchant_key
 
-TRANSFER_CATEGORY_ROOT = "Umbuchungen"
 
-
-def get_transfer_category_ids(categories: list[Category]) -> set[str]:
+def get_transfer_category_ids(
+    categories: list[Category],
+    transfer_category: str = "",
+) -> set[str]:
     """Return category IDs that represent internal transfers.
 
-    MoneyMoney uses a top-level "Umbuchungen" group containing categories
-    like "Echte Umbuchung" and "Kreditkarten Abrechnung". Transactions
-    in these categories are internal transfers between own accounts and
-    should typically be excluded from cashflow/merchant analysis.
+    Looks for a top-level category group matching `transfer_category` and
+    returns IDs of that group and all its children. For example, with
+    transfer_category="Umbuchungen", categories like "Echte Umbuchung"
+    and "Kreditkarten Abrechnung" under it are included.
+
+    Args:
+        categories: All categories from MoneyMoney.
+        transfer_category: Name of the top-level transfer category group.
+            If empty, returns an empty set (no transfer filtering).
+
+    Returns:
+        Set of category IDs representing internal transfers.
     """
+    if not transfer_category:
+        return set()
+
     ids: set[str] = set()
     for cat in categories:
-        if cat.path and cat.path.startswith(TRANSFER_CATEGORY_ROOT):
+        if cat.path and cat.path.startswith(transfer_category):
             ids.add(cat.id)
     return ids
 
@@ -273,11 +285,13 @@ def compute_spending(
     cat_by_name: dict[str, Category] = {cat.name: cat for cat in categories if not cat.group}
 
     # Aggregate current period
-    current: dict[str, dict] = defaultdict(lambda: {
-        "actual": Decimal("0"),
-        "count": 0,
-        "cat": None,
-    })
+    current: dict[str, dict] = defaultdict(
+        lambda: {
+            "actual": Decimal("0"),
+            "count": 0,
+            "cat": None,
+        }
+    )
 
     for tx in transactions:
         key = tx.category_name or "(Uncategorized)"
@@ -330,19 +344,21 @@ def compute_spending(
                 (abs(actual) - abs(compare_actual)) / abs(compare_actual) * 100
             ).quantize(Decimal("0.1"))
 
-        results.append(SpendingAnalysis(
-            category_name=cat_name,
-            category_path=cat_path,
-            category_type=cat_type,
-            actual=actual,
-            budget=budget,
-            budget_period=budget_period,
-            remaining=remaining,
-            percent_used=percent_used,
-            transaction_count=count,
-            compare_actual=compare_actual,
-            compare_change=compare_change,
-        ))
+        results.append(
+            SpendingAnalysis(
+                category_name=cat_name,
+                category_path=cat_path,
+                category_type=cat_type,
+                actual=actual,
+                budget=budget,
+                budget_period=budget_period,
+                remaining=remaining,
+                percent_used=percent_used,
+                transaction_count=count,
+                compare_actual=compare_actual,
+                compare_change=compare_change,
+            )
+        )
 
     # Sort by absolute actual amount, descending
     results.sort(key=lambda r: abs(r.actual), reverse=True)
@@ -399,13 +415,15 @@ def compute_cashflow(
     results = []
     for period_label in sorted(buckets):
         b = buckets[period_label]
-        results.append(CashflowPeriod(
-            period_label=period_label,
-            income=b["income"],
-            expenses=b["expenses"],
-            net=b["income"] + b["expenses"],
-            transaction_count=b["count"],
-        ))
+        results.append(
+            CashflowPeriod(
+                period_label=period_label,
+                income=b["income"],
+                expenses=b["expenses"],
+                net=b["income"] + b["expenses"],
+                transaction_count=b["count"],
+            )
+        )
 
     return results
 
@@ -479,16 +497,18 @@ def detect_recurring(
         # Use original name of last transaction for display
         display_name = txs[-1].name
 
-        results.append(RecurringTransaction(
-            merchant_name=display_name,
-            category_name=category_name,
-            avg_amount=avg_amount,
-            frequency=frequency,
-            occurrence_count=len(txs),
-            total_annual_cost=total_annual_cost,
-            last_date=txs[-1].booking_date,
-            amount_variance=amount_variance,
-        ))
+        results.append(
+            RecurringTransaction(
+                merchant_name=display_name,
+                category_name=category_name,
+                avg_amount=avg_amount,
+                frequency=frequency,
+                occurrence_count=len(txs),
+                total_annual_cost=total_annual_cost,
+                last_date=txs[-1].booking_date,
+                amount_variance=amount_variance,
+            )
+        )
 
     # Sort by annual cost descending
     results.sort(key=lambda r: r.total_annual_cost, reverse=True)
@@ -533,15 +553,17 @@ def compute_merchant_summary(
             name_counts[tx.name] += 1
         display_name = max(name_counts, key=name_counts.get)  # type: ignore[arg-type]
 
-        results.append(MerchantSummary(
-            merchant_name=display_name,
-            transaction_count=len(txs),
-            total_amount=total,
-            avg_amount=avg,
-            categories=cats,
-            first_date=min(dates),
-            last_date=max(dates),
-        ))
+        results.append(
+            MerchantSummary(
+                merchant_name=display_name,
+                transaction_count=len(txs),
+                total_amount=total,
+                avg_amount=avg,
+                categories=cats,
+                first_date=min(dates),
+                last_date=max(dates),
+            )
+        )
 
     results.sort(key=lambda r: abs(r.total_amount), reverse=True)
     return results[:limit] if limit > 0 else results
@@ -593,9 +615,7 @@ def compute_balance_history(
     today = date.today()
 
     # Build per-account transaction sums per month
-    acct_monthly: dict[str, dict[str, Decimal]] = defaultdict(
-        lambda: defaultdict(Decimal)
-    )
+    acct_monthly: dict[str, dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
     acct_names: dict[str, str] = {}
 
     for acc in accounts:
@@ -630,22 +650,26 @@ def compute_balance_history(
             month_sum = acct_monthly[acc.id].get(month, Decimal("0"))
             if i == 0:
                 # Current month: balance is current balance
-                snapshots.append(BalanceSnapshot(
-                    period_label=month,
-                    account_name=acc.name,
-                    balance=balance,
-                    change=month_sum,
-                ))
+                snapshots.append(
+                    BalanceSnapshot(
+                        period_label=month,
+                        account_name=acc.name,
+                        balance=balance,
+                        change=month_sum,
+                    )
+                )
             else:
                 # Previous months: subtract this month's change to get end-of-prev-month
                 balance = balance - month_sum
                 prev_month_sum = acct_monthly[acc.id].get(all_months[i], Decimal("0"))
-                snapshots.append(BalanceSnapshot(
-                    period_label=month,
-                    account_name=acc.name,
-                    balance=balance,
-                    change=prev_month_sum,
-                ))
+                snapshots.append(
+                    BalanceSnapshot(
+                        period_label=month,
+                        account_name=acc.name,
+                        balance=balance,
+                        change=prev_month_sum,
+                    )
+                )
 
         # Reverse so they're chronological
         snapshots.reverse()

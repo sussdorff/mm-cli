@@ -36,6 +36,7 @@ from mm_cli.applescript import (
     set_transaction_comment,
     validate_iban,
 )
+from mm_cli.config import Config, load_config, write_config
 from mm_cli.models import CategoryType, CategoryUsage
 from mm_cli.output import (
     OutputFormat,
@@ -106,7 +107,7 @@ def accounts(
     ] = False,
     active: Annotated[
         bool,
-        typer.Option("--active", help="Only active accounts (exclude 'Aufgelöst' group)"),
+        typer.Option("--active", help="Only active accounts (excludes groups from 'mm init')"),
     ] = False,
     group: Annotated[
         list[str] | None,
@@ -117,9 +118,11 @@ def accounts(
     try:
         accs = export_accounts()
 
-        # Filter by active (exclude "Aufgelöst" group)
+        # Filter by active (exclude groups configured via 'mm init')
         if active:
-            accs = [a for a in accs if a.group.lower() != "aufgelöst"]
+            cfg = load_config()
+            excluded_lower = [g.lower() for g in cfg.excluded_groups]
+            accs = [a for a in accs if a.group.lower() not in excluded_lower]
 
         # Filter by group name(s)
         if group:
@@ -774,10 +777,7 @@ def portfolio(
         # Filter by account name if provided
         if account:
             account_lower = account.lower()
-            portfolios = [
-                p for p in portfolios
-                if account_lower in p.account_name.lower()
-            ]
+            portfolios = [p for p in portfolios if account_lower in p.account_name.lower()]
 
         if not portfolios:
             print_warning("No portfolio data found.")
@@ -804,7 +804,8 @@ def analyze_spending(
     period: Annotated[
         str,
         typer.Option(
-            "--period", "-p",
+            "--period",
+            "-p",
             help="Period: this-month, last-month, this-quarter, last-quarter, this-year",
         ),
     ] = "this-month",
@@ -836,14 +837,14 @@ def analyze_spending(
         bool,
         typer.Option(
             "--include-transfers",
-            help="Include internal transfers (Umbuchungen)",
+            help="Include internal transfers",
         ),
     ] = False,
     transfers_only: Annotated[
         bool,
         typer.Option(
             "--transfers-only",
-            help="Show only internal transfers (Umbuchungen)",
+            help="Show only internal transfers",
         ),
     ] = False,
     format: Annotated[
@@ -855,7 +856,7 @@ def analyze_spending(
 
     Shows spending per category, optionally compared against budgets
     and/or the previous period. By default excludes internal transfers
-    (Umbuchungen) which would distort the analysis.
+    (configured via 'mm init') which would distort the analysis.
 
     Examples:
         mm analyze spending
@@ -914,11 +915,12 @@ def analyze_spending(
         cats = export_categories()
 
         # Filter transfers based on mode
+        cfg = load_config()
         if transfers_only:
-            transfer_ids = get_transfer_category_ids(cats)
+            transfer_ids = get_transfer_category_ids(cats, cfg.transfer_category)
             txs = extract_transfers(txs, transfer_ids, accounts=all_accounts)
         elif not include_transfers:
-            transfer_ids = get_transfer_category_ids(cats)
+            transfer_ids = get_transfer_category_ids(cats, cfg.transfer_category)
             txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
 
         if not txs:
@@ -939,12 +941,16 @@ def analyze_spending(
                 compare_txs = [tx for tx in compare_txs if tx.account_id in account_ids]
             if transfers_only:
                 compare_txs = extract_transfers(
-                    compare_txs, transfer_ids, accounts=all_accounts,
+                    compare_txs,
+                    transfer_ids,
+                    accounts=all_accounts,
                 )
             elif not include_transfers:
                 compare_txs = filter_transfers(
-                    compare_txs, transfer_ids,
-                    accounts=all_accounts, active_groups=group,
+                    compare_txs,
+                    transfer_ids,
+                    accounts=all_accounts,
+                    active_groups=group,
                 )
             if type_filter:
                 tf = type_filter.lower()
@@ -987,14 +993,14 @@ def analyze_cashflow(
         bool,
         typer.Option(
             "--include-transfers",
-            help="Include internal transfers (Umbuchungen)",
+            help="Include internal transfers",
         ),
     ] = False,
     transfers_only: Annotated[
         bool,
         typer.Option(
             "--transfers-only",
-            help="Show only internal transfers (Umbuchungen)",
+            help="Show only internal transfers",
         ),
     ] = False,
     format: Annotated[
@@ -1004,8 +1010,8 @@ def analyze_cashflow(
 ) -> None:
     """Show monthly/quarterly income vs expenses over time.
 
-    By default excludes internal transfers (Umbuchungen) which would
-    double-count money moved between own accounts.
+    By default excludes internal transfers (configured via 'mm init')
+    which would double-count money moved between own accounts.
 
     Examples:
         mm analyze cashflow
@@ -1042,13 +1048,14 @@ def analyze_cashflow(
             txs = [tx for tx in txs if tx.account_id in account_ids]
 
         # Filter transfers based on mode
+        cfg = load_config()
         if transfers_only:
             cats = export_categories()
-            transfer_ids = get_transfer_category_ids(cats)
+            transfer_ids = get_transfer_category_ids(cats, cfg.transfer_category)
             txs = extract_transfers(txs, transfer_ids, accounts=all_accounts)
         elif not include_transfers:
             cats = export_categories()
-            transfer_ids = get_transfer_category_ids(cats)
+            transfer_ids = get_transfer_category_ids(cats, cfg.transfer_category)
             txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
 
         if not txs:
@@ -1085,14 +1092,14 @@ def analyze_recurring(
         bool,
         typer.Option(
             "--include-transfers",
-            help="Include internal transfers (Umbuchungen)",
+            help="Include internal transfers",
         ),
     ] = False,
     transfers_only: Annotated[
         bool,
         typer.Option(
             "--transfers-only",
-            help="Show only internal transfers (Umbuchungen)",
+            help="Show only internal transfers",
         ),
     ] = False,
     format: Annotated[
@@ -1102,8 +1109,8 @@ def analyze_recurring(
 ) -> None:
     """Detect recurring transactions (subscriptions, standing orders).
 
-    By default excludes internal transfers (Umbuchungen) like credit
-    card settlements which are not real subscriptions.
+    By default excludes internal transfers (configured via 'mm init')
+    like credit card settlements which are not real subscriptions.
 
     Examples:
         mm analyze recurring
@@ -1138,13 +1145,14 @@ def analyze_recurring(
             txs = [tx for tx in txs if tx.account_id in account_ids]
 
         # Filter transfers based on mode
+        cfg = load_config()
         if transfers_only:
             cats = export_categories()
-            transfer_ids = get_transfer_category_ids(cats)
+            transfer_ids = get_transfer_category_ids(cats, cfg.transfer_category)
             txs = extract_transfers(txs, transfer_ids, accounts=all_accounts)
         elif not include_transfers:
             cats = export_categories()
-            transfer_ids = get_transfer_category_ids(cats)
+            transfer_ids = get_transfer_category_ids(cats, cfg.transfer_category)
             txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
 
         if not txs:
@@ -1168,7 +1176,8 @@ def analyze_merchants(
     period: Annotated[
         str,
         typer.Option(
-            "--period", "-p",
+            "--period",
+            "-p",
             help="Period: this-month, last-month, this-quarter, last-quarter, this-year",
         ),
     ] = "this-month",
@@ -1196,14 +1205,14 @@ def analyze_merchants(
         bool,
         typer.Option(
             "--include-transfers",
-            help="Include internal transfers (Umbuchungen)",
+            help="Include internal transfers",
         ),
     ] = False,
     transfers_only: Annotated[
         bool,
         typer.Option(
             "--transfers-only",
-            help="Show only internal transfers (Umbuchungen)",
+            help="Show only internal transfers",
         ),
     ] = False,
     format: Annotated[
@@ -1252,13 +1261,14 @@ def analyze_merchants(
             txs = [tx for tx in txs if tx.account_id in account_ids]
 
         # Filter transfers based on mode
+        cfg = load_config()
         if transfers_only:
             cats = export_categories()
-            transfer_ids = get_transfer_category_ids(cats)
+            transfer_ids = get_transfer_category_ids(cats, cfg.transfer_category)
             txs = extract_transfers(txs, transfer_ids, accounts=all_accounts)
         elif not include_transfers:
             cats = export_categories()
-            transfer_ids = get_transfer_category_ids(cats)
+            transfer_ids = get_transfer_category_ids(cats, cfg.transfer_category)
             txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
 
         if not txs:
@@ -1268,7 +1278,9 @@ def analyze_merchants(
         # Pass None for "all" to show both income and expense
         effective_type = None if type_filter == "all" else type_filter
         results = compute_merchant_summary(
-            txs, limit=limit, type_filter=effective_type,
+            txs,
+            limit=limit,
+            type_filter=effective_type,
         )
 
         if not results:
@@ -1289,7 +1301,8 @@ def analyze_top_customers(
     period: Annotated[
         str,
         typer.Option(
-            "--period", "-p",
+            "--period",
+            "-p",
             help="Period: this-month, last-month, this-quarter, last-quarter, this-year",
         ),
     ] = "this-month",
@@ -1313,14 +1326,14 @@ def analyze_top_customers(
         bool,
         typer.Option(
             "--include-transfers",
-            help="Include internal transfers (Umbuchungen)",
+            help="Include internal transfers",
         ),
     ] = False,
     transfers_only: Annotated[
         bool,
         typer.Option(
             "--transfers-only",
-            help="Show only internal transfers (Umbuchungen)",
+            help="Show only internal transfers",
         ),
     ] = False,
     format: Annotated[
@@ -1368,13 +1381,14 @@ def analyze_top_customers(
             txs = [tx for tx in txs if tx.account_id in account_ids]
 
         # Filter transfers based on mode
+        cfg = load_config()
         if transfers_only:
             cats = export_categories()
-            transfer_ids = get_transfer_category_ids(cats)
+            transfer_ids = get_transfer_category_ids(cats, cfg.transfer_category)
             txs = extract_transfers(txs, transfer_ids, accounts=all_accounts)
         elif not include_transfers:
             cats = export_categories()
-            transfer_ids = get_transfer_category_ids(cats)
+            transfer_ids = get_transfer_category_ids(cats, cfg.transfer_category)
             txs = filter_transfers(txs, transfer_ids, accounts=all_accounts, active_groups=group)
 
         if not txs:
@@ -1431,7 +1445,8 @@ def analyze_balance_history(
         if account:
             account_lower = account.lower()
             accs = [
-                a for a in accs
+                a
+                for a in accs
                 if account_lower in a.name.lower() or account_lower == a.iban.lower()
             ]
         if group:
@@ -1465,6 +1480,140 @@ def analyze_balance_history(
 
     except Exception as e:
         handle_applescript_error(e)
+
+
+@app.command()
+def init() -> None:
+    """Set up mm-cli configuration interactively.
+
+    Guides you through configuring:
+    - Transfer category: which top-level category contains internal transfers
+    - Excluded groups: which account groups to hide with --active flag
+
+    Configuration is saved to ~/.config/mm-cli/config.toml
+    """
+    from mm_cli.config import CONFIG_FILE
+
+    # Check for existing config
+    existing = load_config()
+    if CONFIG_FILE.exists():
+        console.print("\n[bold]Current configuration:[/bold]")
+        console.print(f"  Transfer category: {existing.transfer_category or '(none)'}")
+        console.print(f"  Excluded groups:   {', '.join(existing.excluded_groups) or '(none)'}")
+        console.print()
+        if not typer.confirm("Overwrite existing configuration?"):
+            print_info("Configuration unchanged.")
+            raise typer.Exit(0)
+        console.print()
+
+    # --- Step 1: Transfer category ---
+    console.print("[bold]Step 1: Transfer category[/bold]")
+    console.print(
+        "MoneyMoney may have a top-level category group for internal transfers\n"
+        "(e.g. credit card settlements, transfers between own accounts).\n"
+        "Transactions in this category are excluded from analysis by default.\n"
+    )
+
+    transfer_category = ""
+    try:
+        cats = export_categories()
+        # Show top-level GROUP categories as options
+        top_groups = [c for c in cats if c.indentation == 0 and c.group]
+        if top_groups:
+            console.print("Top-level category groups found in MoneyMoney:")
+            for i, cat in enumerate(top_groups, 1):
+                console.print(f"  {i}. {cat.name}")
+            console.print("  0. Skip (no transfer category)")
+            console.print()
+
+            choice = typer.prompt(
+                "Which group is your transfer category? Enter number",
+                default="0",
+            )
+            try:
+                idx = int(choice)
+                if 1 <= idx <= len(top_groups):
+                    transfer_category = top_groups[idx - 1].name
+                    print_info(f"Selected: {transfer_category}")
+                elif idx == 0:
+                    print_info("Skipped transfer category.")
+                else:
+                    print_warning("Invalid choice, skipping.")
+            except ValueError:
+                print_warning("Invalid input, skipping.")
+        else:
+            print_warning("No top-level category groups found in MoneyMoney.")
+    except Exception as e:
+        print_warning(f"Could not fetch categories: {e}")
+        console.print("You can enter the transfer category name manually.")
+        manual = typer.prompt("Transfer category name (or empty to skip)", default="")
+        transfer_category = manual.strip()
+
+    console.print()
+
+    # --- Step 2: Excluded groups ---
+    console.print("[bold]Step 2: Excluded account groups[/bold]")
+    console.print(
+        "Some account groups may contain old/dissolved accounts you want to\n"
+        "hide when using the --active flag.\n"
+    )
+
+    excluded_groups: list[str] = []
+    try:
+        accs = export_accounts()
+        # Find unique group names
+        all_groups = sorted({a.group for a in accs if a.group})
+        if all_groups:
+            console.print("Account groups found in MoneyMoney:")
+            for i, grp in enumerate(all_groups, 1):
+                console.print(f"  {i}. {grp}")
+            console.print("  0. Skip (no excluded groups)")
+            console.print()
+
+            choice = typer.prompt(
+                "Which groups to exclude with --active? Enter numbers separated by commas",
+                default="0",
+            )
+            if choice.strip() != "0":
+                for part in choice.split(","):
+                    part = part.strip()
+                    try:
+                        idx = int(part)
+                        if 1 <= idx <= len(all_groups):
+                            excluded_groups.append(all_groups[idx - 1])
+                    except ValueError:
+                        pass
+                if excluded_groups:
+                    print_info(f"Excluded: {', '.join(excluded_groups)}")
+                else:
+                    print_info("No valid selections, skipping.")
+            else:
+                print_info("Skipped excluded groups.")
+        else:
+            print_warning("No account groups found in MoneyMoney.")
+    except Exception as e:
+        print_warning(f"Could not fetch accounts: {e}")
+        console.print("You can enter group names manually (comma-separated).")
+        manual = typer.prompt("Excluded groups (or empty to skip)", default="")
+        if manual.strip():
+            excluded_groups = [g.strip() for g in manual.split(",") if g.strip()]
+
+    console.print()
+
+    # --- Write config ---
+    new_config = Config(
+        transfer_category=transfer_category,
+        excluded_groups=excluded_groups,
+    )
+    config_path = write_config(new_config)
+
+    # --- Summary ---
+    console.print("[bold]Configuration saved![/bold]")
+    console.print(f"  File:              {config_path}")
+    console.print(f"  Transfer category: {transfer_category or '(none)'}")
+    console.print(f"  Excluded groups:   {', '.join(excluded_groups) or '(none)'}")
+    console.print()
+    print_success("Run 'mm accounts --active' or 'mm analyze spending' to use your config.")
 
 
 if __name__ == "__main__":

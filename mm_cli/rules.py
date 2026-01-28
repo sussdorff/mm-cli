@@ -180,7 +180,7 @@ def suggest_rules(
             for cat_key, cat_entries in name_to_cats.items():
                 # Match if first 8+ chars match
                 min_len = min(len(merchant_key), len(cat_key))
-                if min_len >= 6 and merchant_key[:min(8, min_len)] == cat_key[:min(8, min_len)]:
+                if min_len >= 6 and merchant_key[: min(8, min_len)] == cat_key[: min(8, min_len)]:
                     most_common = Counter(c[0] for c in cat_entries).most_common(1)[0]
                     suggested_cat = most_common[0]
                     for cat_name, cat_path in cat_entries:
@@ -220,12 +220,14 @@ def suggest_rules(
         # Build sample transactions
         samples = []
         for tx in txs[:3]:
-            samples.append({
-                "date": tx.booking_date.isoformat(),
-                "name": tx.name,
-                "amount": str(tx.amount),
-                "purpose": tx.purpose[:60] if tx.purpose else "",
-            })
+            samples.append(
+                {
+                    "date": tx.booking_date.isoformat(),
+                    "name": tx.name,
+                    "amount": str(tx.amount),
+                    "purpose": tx.purpose[:60] if tx.purpose else "",
+                }
+            )
 
         suggestion = RuleSuggestion(
             pattern=pattern,

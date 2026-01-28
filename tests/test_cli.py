@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from typer.testing import CliRunner
 
 from mm_cli.cli import app
+from mm_cli.config import Config
 from mm_cli.models import Account, Category, CategoryType, Transaction
 
 runner = CliRunner()
@@ -131,22 +132,33 @@ class TestTransactionsGroupFilter:
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_transactions")
     def test_transactions_group_filter(
-        self, mock_tx: MagicMock, mock_accs: MagicMock,
-        sample_transactions, multi_group_accounts,
+        self,
+        mock_tx: MagicMock,
+        mock_accs: MagicMock,
+        sample_transactions,
+        multi_group_accounts,
     ) -> None:
         """Test transactions command filters by account group."""
         mock_tx.return_value = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
-                booking_date=date(2024, 1, 15), value_date=date(2024, 1, 15),
-                amount=Decimal("100.00"), currency="EUR",
-                name="PrivatPay", purpose="test",
+                id="1",
+                account_id="uuid-privat-giro",
+                booking_date=date(2024, 1, 15),
+                value_date=date(2024, 1, 15),
+                amount=Decimal("100.00"),
+                currency="EUR",
+                name="PrivatPay",
+                purpose="test",
             ),
             Transaction(
-                id="2", account_id="uuid-cognovis-giro",
-                booking_date=date(2024, 1, 16), value_date=date(2024, 1, 16),
-                amount=Decimal("200.00"), currency="EUR",
-                name="BizPay", purpose="test",
+                id="2",
+                account_id="uuid-cognovis-giro",
+                booking_date=date(2024, 1, 16),
+                value_date=date(2024, 1, 16),
+                amount=Decimal("200.00"),
+                currency="EUR",
+                name="BizPay",
+                purpose="test",
             ),
         ]
         mock_accs.return_value = multi_group_accounts
@@ -160,16 +172,22 @@ class TestTransactionsGroupFilter:
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_transactions")
     def test_transactions_group_filter_case_insensitive(
-        self, mock_tx: MagicMock, mock_accs: MagicMock,
+        self,
+        mock_tx: MagicMock,
+        mock_accs: MagicMock,
         multi_group_accounts,
     ) -> None:
         """Test transactions --group is case-insensitive."""
         mock_tx.return_value = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
-                booking_date=date(2024, 1, 15), value_date=date(2024, 1, 15),
-                amount=Decimal("100.00"), currency="EUR",
-                name="PrivatPay", purpose="test",
+                id="1",
+                account_id="uuid-privat-giro",
+                booking_date=date(2024, 1, 15),
+                value_date=date(2024, 1, 15),
+                amount=Decimal("100.00"),
+                currency="EUR",
+                name="PrivatPay",
+                purpose="test",
             ),
         ]
         mock_accs.return_value = multi_group_accounts
@@ -182,28 +200,39 @@ class TestTransactionsGroupFilter:
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_transactions")
     def test_transactions_group_filter_multiple(
-        self, mock_tx: MagicMock, mock_accs: MagicMock,
+        self,
+        mock_tx: MagicMock,
+        mock_accs: MagicMock,
         multi_group_accounts,
     ) -> None:
         """Test transactions with multiple --group values."""
         mock_tx.return_value = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
-                booking_date=date(2024, 1, 15), value_date=date(2024, 1, 15),
-                amount=Decimal("100.00"), currency="EUR",
-                name="PrivatPay", purpose="test",
+                id="1",
+                account_id="uuid-privat-giro",
+                booking_date=date(2024, 1, 15),
+                value_date=date(2024, 1, 15),
+                amount=Decimal("100.00"),
+                currency="EUR",
+                name="PrivatPay",
+                purpose="test",
             ),
             Transaction(
-                id="2", account_id="uuid-cognovis-giro",
-                booking_date=date(2024, 1, 16), value_date=date(2024, 1, 16),
-                amount=Decimal("200.00"), currency="EUR",
-                name="BizPay", purpose="test",
+                id="2",
+                account_id="uuid-cognovis-giro",
+                booking_date=date(2024, 1, 16),
+                value_date=date(2024, 1, 16),
+                amount=Decimal("200.00"),
+                currency="EUR",
+                name="BizPay",
+                purpose="test",
             ),
         ]
         mock_accs.return_value = multi_group_accounts
 
         result = runner.invoke(
-            app, ["transactions", "--group", "Privat", "--group", "cognovis"],
+            app,
+            ["transactions", "--group", "Privat", "--group", "cognovis"],
         )
 
         assert result.exit_code == 0
@@ -213,16 +242,22 @@ class TestTransactionsGroupFilter:
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_transactions")
     def test_transactions_group_filter_no_match(
-        self, mock_tx: MagicMock, mock_accs: MagicMock,
+        self,
+        mock_tx: MagicMock,
+        mock_accs: MagicMock,
         multi_group_accounts,
     ) -> None:
         """Test transactions --group with no matching accounts."""
         mock_tx.return_value = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
-                booking_date=date(2024, 1, 15), value_date=date(2024, 1, 15),
-                amount=Decimal("100.00"), currency="EUR",
-                name="PrivatPay", purpose="test",
+                id="1",
+                account_id="uuid-privat-giro",
+                booking_date=date(2024, 1, 15),
+                value_date=date(2024, 1, 15),
+                amount=Decimal("100.00"),
+                currency="EUR",
+                name="PrivatPay",
+                purpose="test",
             ),
         ]
         mock_accs.return_value = multi_group_accounts
@@ -234,7 +269,9 @@ class TestTransactionsGroupFilter:
 
     @patch("mm_cli.cli.export_transactions")
     def test_transactions_without_group_no_account_fetch(
-        self, mock_tx: MagicMock, sample_transactions,
+        self,
+        mock_tx: MagicMock,
+        sample_transactions,
     ) -> None:
         """Test that accounts are NOT fetched when --group is not used."""
         mock_tx.return_value = sample_transactions
@@ -368,7 +405,8 @@ class TestTransactionsSorting:
         mock_export.return_value = sample_transactions
 
         result = runner.invoke(
-            app, ["transactions", "--sort", "amount", "--reverse", "--format", "json"],
+            app,
+            ["transactions", "--sort", "amount", "--reverse", "--format", "json"],
         )
 
         assert result.exit_code == 0
@@ -554,17 +592,27 @@ class TestSetCommentCommand:
 class TestAccountsFilters:
     """Tests for accounts command with new filter flags."""
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
-    def test_accounts_active_filter(self, mock_export: MagicMock) -> None:
-        """Test accounts command with --active flag filters out Aufgelöst group."""
+    def test_accounts_active_filter(self, mock_export: MagicMock, mock_config: MagicMock) -> None:
+        """Test accounts command with --active flag filters out configured groups."""
+        mock_config.return_value = Config(excluded_groups=["Aufgelöst"])
         mock_export.return_value = [
             Account(
-                id="1", name="Girokonto", account_number="123",
-                bank_name="Bank", balance=Decimal("1000"), group="Hauptkonten",
+                id="1",
+                name="Girokonto",
+                account_number="123",
+                bank_name="Bank",
+                balance=Decimal("1000"),
+                group="Hauptkonten",
             ),
             Account(
-                id="2", name="Altes Konto", account_number="456",
-                bank_name="Bank", balance=Decimal("0"), group="Aufgelöst",
+                id="2",
+                name="Altes Konto",
+                account_number="456",
+                bank_name="Bank",
+                balance=Decimal("0"),
+                group="Aufgelöst",
             ),
         ]
 
@@ -579,12 +627,20 @@ class TestAccountsFilters:
         """Test accounts command with --group flag."""
         mock_export.return_value = [
             Account(
-                id="1", name="Girokonto", account_number="123",
-                bank_name="Bank", balance=Decimal("1000"), group="Privat",
+                id="1",
+                name="Girokonto",
+                account_number="123",
+                bank_name="Bank",
+                balance=Decimal("1000"),
+                group="Privat",
             ),
             Account(
-                id="2", name="Firmenkonto", account_number="456",
-                bank_name="Bank", balance=Decimal("5000"), group="Business",
+                id="2",
+                name="Firmenkonto",
+                account_number="456",
+                bank_name="Bank",
+                balance=Decimal("5000"),
+                group="Business",
             ),
         ]
 
@@ -599,12 +655,20 @@ class TestAccountsFilters:
         """Test accounts command with --hierarchy flag."""
         mock_export.return_value = [
             Account(
-                id="1", name="Girokonto", account_number="123",
-                bank_name="Bank", balance=Decimal("1000"), group="Hauptkonten",
+                id="1",
+                name="Girokonto",
+                account_number="123",
+                bank_name="Bank",
+                balance=Decimal("1000"),
+                group="Hauptkonten",
             ),
             Account(
-                id="2", name="Tagesgeld", account_number="456",
-                bank_name="Bank", balance=Decimal("5000"), group="Sparkonten",
+                id="2",
+                name="Tagesgeld",
+                account_number="456",
+                bank_name="Bank",
+                balance=Decimal("5000"),
+                group="Sparkonten",
             ),
         ]
 
@@ -620,8 +684,12 @@ class TestAccountsFilters:
         """Test that group field appears in JSON output."""
         mock_export.return_value = [
             Account(
-                id="1", name="Girokonto", account_number="123",
-                bank_name="Bank", balance=Decimal("1000"), group="Privat",
+                id="1",
+                name="Girokonto",
+                account_number="123",
+                bank_name="Bank",
+                balance=Decimal("1000"),
+                group="Privat",
             ),
         ]
 
@@ -634,27 +702,41 @@ class TestAccountsFilters:
 class TestAnalyzeSpending:
     """Tests for analyze spending command."""
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_spending_default(
-        self, mock_tx: MagicMock, mock_cat: MagicMock, mock_accs: MagicMock,
+        self,
+        mock_tx: MagicMock,
+        mock_cat: MagicMock,
+        mock_accs: MagicMock,
+        mock_config: MagicMock,
     ) -> None:
         """Test analyze spending with defaults."""
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_accs.return_value = []
         mock_tx.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
-                currency="EUR", name="REWE", purpose="Einkauf",
-                category_id="cat1", category_name="Lebensmittel",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="Einkauf",
+                category_id="cat1",
+                category_name="Lebensmittel",
             ),
         ]
         mock_cat.return_value = [
             Category(
-                id="cat1", name="Lebensmittel",
+                id="cat1",
+                name="Lebensmittel",
                 category_type=CategoryType.EXPENSE,
-                budget=Decimal("500"), budget_period="monthly",
+                budget=Decimal("500"),
+                budget_period="monthly",
             ),
         ]
 
@@ -664,26 +746,44 @@ class TestAnalyzeSpending:
         assert "Spending Analysis" in result.output
         assert "Lebensmittel" in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_spending_type_filter(
-        self, mock_tx: MagicMock, mock_cat: MagicMock, mock_accs: MagicMock,
+        self,
+        mock_tx: MagicMock,
+        mock_cat: MagicMock,
+        mock_accs: MagicMock,
+        mock_config: MagicMock,
     ) -> None:
         """Test analyze spending with --type expense."""
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_accs.return_value = []
         mock_tx.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
-                currency="EUR", name="REWE", purpose="Einkauf",
-                category_id="cat1", category_name="Lebensmittel",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="Einkauf",
+                category_id="cat1",
+                category_name="Lebensmittel",
             ),
             Transaction(
-                id="2", account_id="acc1", booking_date=date(2026, 1, 15),
-                value_date=date(2026, 1, 15), amount=Decimal("3500.00"),
-                currency="EUR", name="Gehalt", purpose="Lohn",
-                category_id="cat2", category_name="Gehalt",
+                id="2",
+                account_id="acc1",
+                booking_date=date(2026, 1, 15),
+                value_date=date(2026, 1, 15),
+                amount=Decimal("3500.00"),
+                currency="EUR",
+                name="Gehalt",
+                purpose="Lohn",
+                category_id="cat2",
+                category_name="Gehalt",
             ),
         ]
         mock_cat.return_value = []
@@ -693,20 +793,32 @@ class TestAnalyzeSpending:
         assert result.exit_code == 0
         assert "Lebensmittel" in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_spending_json_format(
-        self, mock_tx: MagicMock, mock_cat: MagicMock, mock_accs: MagicMock,
+        self,
+        mock_tx: MagicMock,
+        mock_cat: MagicMock,
+        mock_accs: MagicMock,
+        mock_config: MagicMock,
     ) -> None:
         """Test analyze spending with JSON output."""
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_accs.return_value = []
         mock_tx.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
-                currency="EUR", name="REWE", purpose="Einkauf",
-                category_id="cat1", category_name="Lebensmittel",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="Einkauf",
+                category_id="cat1",
+                category_name="Lebensmittel",
             ),
         ]
         mock_cat.return_value = []
@@ -716,38 +828,63 @@ class TestAnalyzeSpending:
         assert result.exit_code == 0
         assert '"category_name": "Lebensmittel"' in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_spending_explicit_dates(
-        self, mock_tx: MagicMock, mock_cat: MagicMock, mock_accs: MagicMock,
+        self,
+        mock_tx: MagicMock,
+        mock_cat: MagicMock,
+        mock_accs: MagicMock,
+        mock_config: MagicMock,
     ) -> None:
         """Test analyze spending with explicit --from and --to."""
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_accs.return_value = []
         mock_tx.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
-                currency="EUR", name="REWE", purpose="Einkauf",
-                category_id="cat1", category_name="Lebensmittel",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="Einkauf",
+                category_id="cat1",
+                category_name="Lebensmittel",
             ),
         ]
         mock_cat.return_value = []
 
-        result = runner.invoke(app, [
-            "analyze", "spending",
-            "--from", "2026-01-01", "--to", "2026-01-31",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "analyze",
+                "spending",
+                "--from",
+                "2026-01-01",
+                "--to",
+                "2026-01-31",
+            ],
+        )
 
         assert result.exit_code == 0
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_spending_no_transactions(
-        self, mock_tx: MagicMock, mock_cat: MagicMock, mock_accs: MagicMock,
+        self,
+        mock_tx: MagicMock,
+        mock_cat: MagicMock,
+        mock_accs: MagicMock,
+        mock_config: MagicMock,
     ) -> None:
         """Test analyze spending with no matching transactions."""
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_accs.return_value = []
         mock_tx.return_value = []
         mock_cat.return_value = []
@@ -761,15 +898,24 @@ class TestAnalyzeSpending:
 class TestAnalyzeCashflow:
     """Tests for analyze cashflow command."""
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.analysis.date")
     @patch("mm_cli.cli.date")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_cashflow_default(
-        self, mock_tx, mock_cat, mock_accs, mock_cli_date, mock_analysis_date,
-        rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_cli_date,
+        mock_analysis_date,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         for md in (mock_cli_date, mock_analysis_date):
             md.today.return_value = date(2025, 6, 15)
             md.side_effect = lambda *args, **kw: date(*args, **kw)
@@ -782,15 +928,24 @@ class TestAnalyzeCashflow:
         assert result.exit_code == 0
         assert "Cashflow" in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.analysis.date")
     @patch("mm_cli.cli.date")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_cashflow_quarterly(
-        self, mock_tx, mock_cat, mock_accs, mock_cli_date, mock_analysis_date,
-        rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_cli_date,
+        mock_analysis_date,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         for md in (mock_cli_date, mock_analysis_date):
             md.today.return_value = date(2025, 6, 15)
             md.side_effect = lambda *args, **kw: date(*args, **kw)
@@ -802,15 +957,24 @@ class TestAnalyzeCashflow:
 
         assert result.exit_code == 0
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.analysis.date")
     @patch("mm_cli.cli.date")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_cashflow_json(
-        self, mock_tx, mock_cat, mock_accs, mock_cli_date, mock_analysis_date,
-        rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_cli_date,
+        mock_analysis_date,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         for md in (mock_cli_date, mock_analysis_date):
             md.today.return_value = date(2025, 6, 15)
             md.side_effect = lambda *args, **kw: date(*args, **kw)
@@ -823,12 +987,19 @@ class TestAnalyzeCashflow:
         assert result.exit_code == 0
         assert '"period_label"' in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_cashflow_no_transactions(
-        self, mock_tx, mock_cat, mock_accs, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_config,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_tx.return_value = []
         mock_cat.return_value = transfer_categories
         mock_accs.return_value = []
@@ -838,16 +1009,25 @@ class TestAnalyzeCashflow:
         assert result.exit_code == 0
         assert "No transactions" in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.analysis.date")
     @patch("mm_cli.cli.date")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_transactions")
     def test_cashflow_with_group(
-        self, mock_tx, mock_accs, mock_cat,
-        mock_cli_date, mock_analysis_date,
-        rich_transactions, sample_accounts, transfer_categories,
+        self,
+        mock_tx,
+        mock_accs,
+        mock_cat,
+        mock_cli_date,
+        mock_analysis_date,
+        mock_config,
+        rich_transactions,
+        sample_accounts,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         for md in (mock_cli_date, mock_analysis_date):
             md.today.return_value = date(2025, 6, 15)
             md.side_effect = lambda *args, **kw: date(*args, **kw)
@@ -863,7 +1043,10 @@ class TestAnalyzeCashflow:
     @patch("mm_cli.cli.date")
     @patch("mm_cli.cli.export_transactions")
     def test_cashflow_include_transfers(
-        self, mock_tx, mock_cli_date, mock_analysis_date,
+        self,
+        mock_tx,
+        mock_cli_date,
+        mock_analysis_date,
         rich_transactions,
     ) -> None:
         """With --include-transfers, categories are not loaded."""
@@ -873,7 +1056,8 @@ class TestAnalyzeCashflow:
         mock_tx.return_value = rich_transactions
 
         result = runner.invoke(
-            app, ["analyze", "cashflow", "--include-transfers"],
+            app,
+            ["analyze", "cashflow", "--include-transfers"],
         )
 
         assert result.exit_code == 0
@@ -883,14 +1067,22 @@ class TestAnalyzeCashflow:
 class TestAnalyzeRecurring:
     """Tests for analyze recurring command."""
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.date")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_recurring_default(
-        self, mock_tx, mock_cat, mock_accs, mock_cli_date,
-        rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_cli_date,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_cli_date.today.return_value = date(2025, 6, 15)
         mock_cli_date.side_effect = lambda *args, **kw: date(*args, **kw)
         mock_tx.return_value = rich_transactions
@@ -902,14 +1094,22 @@ class TestAnalyzeRecurring:
         assert result.exit_code == 0
         assert "Recurring" in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.date")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_recurring_json(
-        self, mock_tx, mock_cat, mock_accs, mock_cli_date,
-        rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_cli_date,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_cli_date.today.return_value = date(2025, 6, 15)
         mock_cli_date.side_effect = lambda *args, **kw: date(*args, **kw)
         mock_tx.return_value = rich_transactions
@@ -921,13 +1121,21 @@ class TestAnalyzeRecurring:
         assert result.exit_code == 0
         assert '"merchant_name"' in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.date")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_recurring_no_transactions(
-        self, mock_tx, mock_cat, mock_accs, mock_cli_date, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_cli_date,
+        mock_config,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_cli_date.today.return_value = date(2025, 6, 15)
         mock_cli_date.side_effect = lambda *args, **kw: date(*args, **kw)
         mock_tx.return_value = []
@@ -939,14 +1147,22 @@ class TestAnalyzeRecurring:
         assert result.exit_code == 0
         assert "No transactions" in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.date")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_recurring_high_threshold(
-        self, mock_tx, mock_cat, mock_accs, mock_cli_date,
-        rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_cli_date,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_cli_date.today.return_value = date(2025, 6, 15)
         mock_cli_date.side_effect = lambda *args, **kw: date(*args, **kw)
         mock_tx.return_value = rich_transactions
@@ -954,7 +1170,8 @@ class TestAnalyzeRecurring:
         mock_accs.return_value = []
 
         result = runner.invoke(
-            app, ["analyze", "recurring", "--min-occurrences", "100"],
+            app,
+            ["analyze", "recurring", "--min-occurrences", "100"],
         )
 
         assert result.exit_code == 0
@@ -964,12 +1181,20 @@ class TestAnalyzeRecurring:
 class TestAnalyzeMerchants:
     """Tests for analyze merchants command."""
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_merchants_default(
-        self, mock_tx, mock_cat, mock_accs, rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_tx.return_value = rich_transactions
         mock_cat.return_value = transfer_categories
         mock_accs.return_value = []
@@ -979,28 +1204,45 @@ class TestAnalyzeMerchants:
         assert result.exit_code == 0
         assert "Merchant" in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_merchants_type_all(
-        self, mock_tx, mock_cat, mock_accs, rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_tx.return_value = rich_transactions
         mock_cat.return_value = transfer_categories
         mock_accs.return_value = []
 
         result = runner.invoke(
-            app, ["analyze", "merchants", "--type", "all"],
+            app,
+            ["analyze", "merchants", "--type", "all"],
         )
 
         assert result.exit_code == 0
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_merchants_json(
-        self, mock_tx, mock_cat, mock_accs, rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_tx.return_value = rich_transactions
         mock_cat.return_value = transfer_categories
         mock_accs.return_value = []
@@ -1010,12 +1252,20 @@ class TestAnalyzeMerchants:
         assert result.exit_code == 0
         assert '"merchant_name"' in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_merchants_with_limit(
-        self, mock_tx, mock_cat, mock_accs, rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_tx.return_value = rich_transactions
         mock_cat.return_value = transfer_categories
         mock_accs.return_value = []
@@ -1024,12 +1274,19 @@ class TestAnalyzeMerchants:
 
         assert result.exit_code == 0
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_merchants_no_transactions(
-        self, mock_tx, mock_cat, mock_accs, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_config,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_tx.return_value = []
         mock_cat.return_value = transfer_categories
         mock_accs.return_value = []
@@ -1043,12 +1300,20 @@ class TestAnalyzeMerchants:
 class TestAnalyzeTopCustomers:
     """Tests for analyze top-customers command."""
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_top_customers_default(
-        self, mock_tx, mock_cat, mock_accs, rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_tx.return_value = rich_transactions
         mock_cat.return_value = transfer_categories
         mock_accs.return_value = []
@@ -1058,29 +1323,45 @@ class TestAnalyzeTopCustomers:
         assert result.exit_code == 0
         assert "Customer" in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_top_customers_json(
-        self, mock_tx, mock_cat, mock_accs, rich_transactions, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_config,
+        rich_transactions,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_tx.return_value = rich_transactions
         mock_cat.return_value = transfer_categories
         mock_accs.return_value = []
 
         result = runner.invoke(
-            app, ["analyze", "top-customers", "--format", "json"],
+            app,
+            ["analyze", "top-customers", "--format", "json"],
         )
 
         assert result.exit_code == 0
         assert '"merchant_name"' in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_top_customers_no_transactions(
-        self, mock_tx, mock_cat, mock_accs, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_config,
+        transfer_categories,
     ) -> None:
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_tx.return_value = []
         mock_cat.return_value = transfer_categories
         mock_accs.return_value = []
@@ -1090,18 +1371,30 @@ class TestAnalyzeTopCustomers:
         assert result.exit_code == 0
         assert "No transactions" in result.output
 
+    @patch("mm_cli.cli.load_config")
     @patch("mm_cli.cli.export_accounts")
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_top_customers_only_expenses(
-        self, mock_tx, mock_cat, mock_accs, transfer_categories,
+        self,
+        mock_tx,
+        mock_cat,
+        mock_accs,
+        mock_config,
+        transfer_categories,
     ) -> None:
         """When all transactions are expenses, no customers found."""
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
         mock_tx.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2025, 1, 5),
-                value_date=date(2025, 1, 5), amount=Decimal("-50.00"),
-                currency="EUR", name="Shop", purpose="",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2025, 1, 5),
+                value_date=date(2025, 1, 5),
+                amount=Decimal("-50.00"),
+                currency="EUR",
+                name="Shop",
+                purpose="",
             ),
         ]
         mock_cat.return_value = transfer_categories
@@ -1121,9 +1414,13 @@ class TestAnalyzeBalanceHistory:
     @patch("mm_cli.cli.export_transactions")
     @patch("mm_cli.cli.export_accounts")
     def test_balance_history_default(
-        self, mock_accs: MagicMock, mock_tx: MagicMock,
-        mock_cli_date: MagicMock, mock_analysis_date: MagicMock,
-        sample_accounts, rich_transactions,
+        self,
+        mock_accs: MagicMock,
+        mock_tx: MagicMock,
+        mock_cli_date: MagicMock,
+        mock_analysis_date: MagicMock,
+        sample_accounts,
+        rich_transactions,
     ) -> None:
         for md in (mock_cli_date, mock_analysis_date):
             md.today.return_value = date(2025, 6, 15)
@@ -1141,9 +1438,13 @@ class TestAnalyzeBalanceHistory:
     @patch("mm_cli.cli.export_transactions")
     @patch("mm_cli.cli.export_accounts")
     def test_balance_history_json(
-        self, mock_accs: MagicMock, mock_tx: MagicMock,
-        mock_cli_date: MagicMock, mock_analysis_date: MagicMock,
-        sample_accounts, rich_transactions,
+        self,
+        mock_accs: MagicMock,
+        mock_tx: MagicMock,
+        mock_cli_date: MagicMock,
+        mock_analysis_date: MagicMock,
+        sample_accounts,
+        rich_transactions,
     ) -> None:
         for md in (mock_cli_date, mock_analysis_date):
             md.today.return_value = date(2025, 6, 15)
@@ -1161,9 +1462,13 @@ class TestAnalyzeBalanceHistory:
     @patch("mm_cli.cli.export_transactions")
     @patch("mm_cli.cli.export_accounts")
     def test_balance_history_single_account(
-        self, mock_accs: MagicMock, mock_tx: MagicMock,
-        mock_cli_date: MagicMock, mock_analysis_date: MagicMock,
-        sample_accounts, rich_transactions,
+        self,
+        mock_accs: MagicMock,
+        mock_tx: MagicMock,
+        mock_cli_date: MagicMock,
+        mock_analysis_date: MagicMock,
+        sample_accounts,
+        rich_transactions,
     ) -> None:
         for md in (mock_cli_date, mock_analysis_date):
             md.today.return_value = date(2025, 6, 15)
@@ -1193,15 +1498,23 @@ class TestTransferCommand:
         """Test dry-run mode shows summary but doesn't execute."""
         mock_accs.return_value = sample_accounts
 
-        result = runner.invoke(app, [
-            "transfer",
-            "--from-account", "Girokonto",
-            "--to", "Max Mustermann",
-            "--iban", "DE89370400440532013000",
-            "--amount", "100.00",
-            "--purpose", "Test transfer",
-            "--dry-run",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "transfer",
+                "--from-account",
+                "Girokonto",
+                "--to",
+                "Max Mustermann",
+                "--iban",
+                "DE89370400440532013000",
+                "--amount",
+                "100.00",
+                "--purpose",
+                "Test transfer",
+                "--dry-run",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "Transfer Summary" in result.output
@@ -1212,15 +1525,23 @@ class TestTransferCommand:
 
     def test_transfer_invalid_iban(self) -> None:
         """Test invalid IBAN is rejected."""
-        result = runner.invoke(app, [
-            "transfer",
-            "--from-account", "Girokonto",
-            "--to", "Max Mustermann",
-            "--iban", "INVALID",
-            "--amount", "100.00",
-            "--purpose", "Test transfer",
-            "--confirm",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "transfer",
+                "--from-account",
+                "Girokonto",
+                "--to",
+                "Max Mustermann",
+                "--iban",
+                "INVALID",
+                "--amount",
+                "100.00",
+                "--purpose",
+                "Test transfer",
+                "--confirm",
+            ],
+        )
 
         assert result.exit_code == 1
         assert "Invalid IBAN" in result.output
@@ -1228,21 +1549,32 @@ class TestTransferCommand:
     @patch("mm_cli.cli.create_bank_transfer")
     @patch("mm_cli.cli.export_accounts")
     def test_transfer_with_confirm(
-        self, mock_accs: MagicMock, mock_transfer: MagicMock, sample_accounts,
+        self,
+        mock_accs: MagicMock,
+        mock_transfer: MagicMock,
+        sample_accounts,
     ) -> None:
         """Test transfer execution with --confirm flag."""
         mock_accs.return_value = sample_accounts
         mock_transfer.return_value = ""
 
-        result = runner.invoke(app, [
-            "transfer",
-            "--from-account", "Girokonto",
-            "--to", "Max Mustermann",
-            "--iban", "DE89370400440532013000",
-            "--amount", "100.00",
-            "--purpose", "Test transfer",
-            "--confirm",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "transfer",
+                "--from-account",
+                "Girokonto",
+                "--to",
+                "Max Mustermann",
+                "--iban",
+                "DE89370400440532013000",
+                "--amount",
+                "100.00",
+                "--purpose",
+                "Test transfer",
+                "--confirm",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "initiated successfully" in result.output
@@ -1260,30 +1592,46 @@ class TestTransferCommand:
         """Test account lookup failure shows error."""
         mock_accs.return_value = []
 
-        result = runner.invoke(app, [
-            "transfer",
-            "--from-account", "NonExistent",
-            "--to", "Max Mustermann",
-            "--iban", "DE89370400440532013000",
-            "--amount", "100.00",
-            "--purpose", "Test transfer",
-            "--confirm",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "transfer",
+                "--from-account",
+                "NonExistent",
+                "--to",
+                "Max Mustermann",
+                "--iban",
+                "DE89370400440532013000",
+                "--amount",
+                "100.00",
+                "--purpose",
+                "Test transfer",
+                "--confirm",
+            ],
+        )
 
         assert result.exit_code == 1
         assert "Account not found" in result.output
 
     def test_transfer_negative_amount(self) -> None:
         """Test negative amount is rejected."""
-        result = runner.invoke(app, [
-            "transfer",
-            "--from-account", "Girokonto",
-            "--to", "Max Mustermann",
-            "--iban", "DE89370400440532013000",
-            "--amount", "-50.00",
-            "--purpose", "Test",
-            "--confirm",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "transfer",
+                "--from-account",
+                "Girokonto",
+                "--to",
+                "Max Mustermann",
+                "--iban",
+                "DE89370400440532013000",
+                "--amount",
+                "-50.00",
+                "--purpose",
+                "Test",
+                "--confirm",
+            ],
+        )
 
         assert result.exit_code == 1
         assert "Amount must be positive" in result.output
@@ -1291,22 +1639,33 @@ class TestTransferCommand:
     @patch("mm_cli.cli.create_bank_transfer")
     @patch("mm_cli.cli.export_accounts")
     def test_transfer_with_outbox(
-        self, mock_accs: MagicMock, mock_transfer: MagicMock, sample_accounts,
+        self,
+        mock_accs: MagicMock,
+        mock_transfer: MagicMock,
+        sample_accounts,
     ) -> None:
         """Test transfer with --outbox flag."""
         mock_accs.return_value = sample_accounts
         mock_transfer.return_value = ""
 
-        result = runner.invoke(app, [
-            "transfer",
-            "--from-account", "Girokonto",
-            "--to", "Max Mustermann",
-            "--iban", "DE89370400440532013000",
-            "--amount", "250.00",
-            "--purpose", "Invoice payment",
-            "--confirm",
-            "--outbox",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "transfer",
+                "--from-account",
+                "Girokonto",
+                "--to",
+                "Max Mustermann",
+                "--iban",
+                "DE89370400440532013000",
+                "--amount",
+                "250.00",
+                "--purpose",
+                "Invoice payment",
+                "--confirm",
+                "--outbox",
+            ],
+        )
 
         assert result.exit_code == 0
         mock_transfer.assert_called_once_with(
@@ -1320,40 +1679,60 @@ class TestTransferCommand:
 
     @patch("mm_cli.cli.export_accounts")
     def test_transfer_iban_with_spaces(
-        self, mock_accs: MagicMock, sample_accounts,
+        self,
+        mock_accs: MagicMock,
+        sample_accounts,
     ) -> None:
         """Test IBAN with spaces is normalized in dry-run."""
         mock_accs.return_value = sample_accounts
 
-        result = runner.invoke(app, [
-            "transfer",
-            "--from-account", "Girokonto",
-            "--to", "Max Mustermann",
-            "--iban", "DE89 3704 0044 0532 0130 00",
-            "--amount", "100.00",
-            "--purpose", "Test",
-            "--dry-run",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "transfer",
+                "--from-account",
+                "Girokonto",
+                "--to",
+                "Max Mustermann",
+                "--iban",
+                "DE89 3704 0044 0532 0130 00",
+                "--amount",
+                "100.00",
+                "--purpose",
+                "Test",
+                "--dry-run",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "DE89370400440532013000" in result.output
 
     @patch("mm_cli.cli.export_accounts")
     def test_transfer_lookup_by_iban(
-        self, mock_accs: MagicMock, sample_accounts,
+        self,
+        mock_accs: MagicMock,
+        sample_accounts,
     ) -> None:
         """Test account lookup by IBAN."""
         mock_accs.return_value = sample_accounts
 
-        result = runner.invoke(app, [
-            "transfer",
-            "--from-account", "DE89370400440532013000",
-            "--to", "Max Mustermann",
-            "--iban", "DE27100777770209299700",
-            "--amount", "50.00",
-            "--purpose", "Test",
-            "--dry-run",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "transfer",
+                "--from-account",
+                "DE89370400440532013000",
+                "--to",
+                "Max Mustermann",
+                "--iban",
+                "DE27100777770209299700",
+                "--amount",
+                "50.00",
+                "--purpose",
+                "Test",
+                "--dry-run",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "Girokonto" in result.output
@@ -1488,12 +1867,18 @@ class TestExportCommand:
         """Test export command with date range."""
         mock_export.return_value = "/tmp/export.sta"
 
-        result = runner.invoke(app, [
-            "export",
-            "--from", "2024-01-01",
-            "--to", "2024-12-31",
-            "--format", "sta",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "export",
+                "--from",
+                "2024-01-01",
+                "--to",
+                "2024-12-31",
+                "--format",
+                "sta",
+            ],
+        )
 
         assert result.exit_code == 0
         mock_export.assert_called_once_with(
@@ -1508,11 +1893,16 @@ class TestExportCommand:
         """Test export command with account filter."""
         mock_export.return_value = "/tmp/export.sta"
 
-        result = runner.invoke(app, [
-            "export",
-            "--account", "DE89370400440532013000",
-            "--format", "sta",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "export",
+                "--account",
+                "DE89370400440532013000",
+                "--format",
+                "sta",
+            ],
+        )
 
         assert result.exit_code == 0
         mock_export.assert_called_once_with(
@@ -1528,11 +1918,16 @@ class TestExportCommand:
         """Test export command with --output saves to specified path."""
         mock_export.return_value = "/tmp/export.sta"
 
-        result = runner.invoke(app, [
-            "export",
-            "--format", "sta",
-            "--output", "/tmp/my_export.sta",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "export",
+                "--format",
+                "sta",
+                "--output",
+                "/tmp/my_export.sta",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "Exported to" in result.output
@@ -1566,32 +1961,50 @@ class TestSuggestRulesCommand:
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_suggest_rules_with_suggestions(
-        self, mock_tx: MagicMock, mock_cat: MagicMock,
+        self,
+        mock_tx: MagicMock,
+        mock_cat: MagicMock,
         sample_categories,
     ) -> None:
         """Test suggest-rules command outputs rule suggestions."""
         # Uncategorized transactions in target range
         uncategorized_txs = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
-                currency="EUR", name="REWE", purpose="REWE SAGT DANKE",
-                category_id=None, category_name=None,
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="REWE SAGT DANKE",
+                category_id=None,
+                category_name=None,
             ),
         ]
         # Historical categorized transactions
         categorized_txs = [
             Transaction(
-                id="2", account_id="acc1", booking_date=date(2025, 10, 5),
-                value_date=date(2025, 10, 5), amount=Decimal("-55.00"),
-                currency="EUR", name="REWE", purpose="REWE SAGT DANKE",
+                id="2",
+                account_id="acc1",
+                booking_date=date(2025, 10, 5),
+                value_date=date(2025, 10, 5),
+                amount=Decimal("-55.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="REWE SAGT DANKE",
                 category_id="550e8400-e29b-41d4-a716-446655440003",
                 category_name="Lebensmittel",
             ),
             Transaction(
-                id="3", account_id="acc1", booking_date=date(2025, 11, 5),
-                value_date=date(2025, 11, 5), amount=Decimal("-35.00"),
-                currency="EUR", name="REWE", purpose="REWE SAGT DANKE",
+                id="3",
+                account_id="acc1",
+                booking_date=date(2025, 11, 5),
+                value_date=date(2025, 11, 5),
+                amount=Decimal("-35.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="REWE SAGT DANKE",
                 category_id="550e8400-e29b-41d4-a716-446655440003",
                 category_name="Lebensmittel",
             ),
@@ -1600,10 +2013,16 @@ class TestSuggestRulesCommand:
         mock_tx.side_effect = [uncategorized_txs, uncategorized_txs + categorized_txs]
         mock_cat.return_value = sample_categories
 
-        result = runner.invoke(app, [
-            "suggest-rules",
-            "--from", "2026-01-01", "--to", "2026-01-31",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "suggest-rules",
+                "--from",
+                "2026-01-01",
+                "--to",
+                "2026-01-31",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "REWE" in result.output
@@ -1613,17 +2032,29 @@ class TestSuggestRulesCommand:
         """Test suggest-rules when all transactions are categorized."""
         mock_tx.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
-                currency="EUR", name="REWE", purpose="test",
-                category_id="cat1", category_name="Lebensmittel",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="test",
+                category_id="cat1",
+                category_name="Lebensmittel",
             ),
         ]
 
-        result = runner.invoke(app, [
-            "suggest-rules",
-            "--from", "2026-01-01", "--to", "2026-01-31",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "suggest-rules",
+                "--from",
+                "2026-01-01",
+                "--to",
+                "2026-01-31",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "No uncategorized" in result.output
@@ -1631,25 +2062,40 @@ class TestSuggestRulesCommand:
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_suggest_rules_json_format(
-        self, mock_tx: MagicMock, mock_cat: MagicMock,
+        self,
+        mock_tx: MagicMock,
+        mock_cat: MagicMock,
     ) -> None:
         """Test suggest-rules command with JSON output format."""
         uncategorized_txs = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
-                currency="EUR", name="NewShop", purpose="purchase",
-                category_id=None, category_name=None,
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR",
+                name="NewShop",
+                purpose="purchase",
+                category_id=None,
+                category_name=None,
             ),
         ]
         mock_tx.side_effect = [uncategorized_txs, uncategorized_txs]
         mock_cat.return_value = []
 
-        result = runner.invoke(app, [
-            "suggest-rules",
-            "--from", "2026-01-01", "--to", "2026-01-31",
-            "--format", "json",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "suggest-rules",
+                "--from",
+                "2026-01-01",
+                "--to",
+                "2026-01-31",
+                "--format",
+                "json",
+            ],
+        )
 
         assert result.exit_code == 0
         assert '"pattern"' in result.output
@@ -1673,11 +2119,18 @@ class TestEdgeCases:
         """Test transactions with None category_id and category_name."""
         mock_export.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-25.00"),
-                currency="EUR", name="Unknown Shop", purpose="Some purchase",
-                category_id=None, category_name=None,
-                checkmark=False, comment="",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-25.00"),
+                currency="EUR",
+                name="Unknown Shop",
+                purpose="Some purchase",
+                category_id=None,
+                category_name=None,
+                checkmark=False,
+                comment="",
             ),
         ]
 
@@ -1693,10 +2146,16 @@ class TestEdgeCases:
         """Test transactions with unusual currency (CHF)."""
         mock_export.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("1500.00"),
-                currency="CHF", name="SwissPayment", purpose="test",
-                category_id=None, category_name=None,
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("1500.00"),
+                currency="CHF",
+                name="SwissPayment",
+                purpose="test",
+                category_id=None,
+                category_name=None,
             ),
         ]
 
@@ -1711,10 +2170,16 @@ class TestEdgeCases:
         """Test JSON output correctly represents null categories."""
         mock_export.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-10.00"),
-                currency="EUR", name="Test", purpose="",
-                category_id=None, category_name=None,
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-10.00"),
+                currency="EUR",
+                name="Test",
+                purpose="",
+                category_id=None,
+                category_name=None,
             ),
         ]
 
@@ -1737,15 +2202,23 @@ class TestEdgeCases:
     @patch("mm_cli.cli.export_categories")
     @patch("mm_cli.cli.export_transactions")
     def test_category_usage_no_categorized_transactions(
-        self, mock_tx: MagicMock, mock_cat: MagicMock,
+        self,
+        mock_tx: MagicMock,
+        mock_cat: MagicMock,
     ) -> None:
         """Test category-usage with no categorized transactions."""
         mock_tx.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-25.00"),
-                currency="EUR", name="Shop", purpose="test",
-                category_id=None, category_name=None,
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-25.00"),
+                currency="EUR",
+                name="Shop",
+                purpose="test",
+                category_id=None,
+                category_name=None,
             ),
         ]
         mock_cat.return_value = []
@@ -1761,10 +2234,16 @@ class TestEdgeCases:
         long_purpose = "A" * 100
         mock_export.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-25.00"),
-                currency="EUR", name="Test", purpose=long_purpose,
-                category_id=None, category_name=None,
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-25.00"),
+                currency="EUR",
+                name="Test",
+                purpose=long_purpose,
+                category_id=None,
+                category_name=None,
             ),
         ]
 
@@ -1781,10 +2260,16 @@ class TestEdgeCases:
         """Test transactions with empty counterparty IBAN."""
         mock_export.return_value = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-10.00"),
-                currency="EUR", name="Cash Withdrawal", purpose="ATM",
-                category_id=None, category_name=None,
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-10.00"),
+                currency="EUR",
+                name="Cash Withdrawal",
+                purpose="ATM",
+                category_id=None,
+                category_name=None,
                 counterparty_iban="",
             ),
         ]

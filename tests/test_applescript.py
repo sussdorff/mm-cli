@@ -127,12 +127,20 @@ class TestParseHelpers:
             {"uuid": "1", "name": "Root", "type": 0, "indentation": 0, "group": True, "rules": ""},
             {"uuid": "2", "name": "Mid", "type": 0, "indentation": 1, "group": True, "rules": ""},
             {
-                "uuid": "3", "name": "Leaf", "type": 0,
-                "indentation": 2, "group": False, "rules": "test rule",
+                "uuid": "3",
+                "name": "Leaf",
+                "type": 0,
+                "indentation": 2,
+                "group": False,
+                "rules": "test rule",
             },
             {
-                "uuid": "4", "name": "Other Root", "type": 0,
-                "indentation": 0, "group": False, "rules": "",
+                "uuid": "4",
+                "name": "Other Root",
+                "type": 0,
+                "indentation": 0,
+                "group": False,
+                "rules": "",
             },
         ]
         result: list[Category] = []
@@ -318,7 +326,9 @@ class TestExportPortfolio:
 
     @patch("mm_cli.applescript._run_export_script")
     def test_export_portfolio_parsing(
-        self, mock_export: MagicMock, sample_plist_portfolio: list[dict],
+        self,
+        mock_export: MagicMock,
+        sample_plist_portfolio: list[dict],
     ) -> None:
         """Test export_portfolio parses plist data correctly."""
         mock_export.return_value = sample_plist_portfolio
@@ -355,7 +365,9 @@ class TestExportPortfolio:
 
     @patch("mm_cli.applescript._run_export_script")
     def test_export_portfolio_totals(
-        self, mock_export: MagicMock, sample_plist_portfolio: list[dict],
+        self,
+        mock_export: MagicMock,
+        sample_plist_portfolio: list[dict],
     ) -> None:
         """Test that portfolio totals are computed correctly."""
         mock_export.return_value = sample_plist_portfolio
@@ -461,10 +473,7 @@ class TestSetTransactionCheckmark:
 
         set_transaction_checkmark("99999", checked=True)
 
-        expected = (
-            'tell application "MoneyMoney" to set transaction id 99999 '
-            'checkmark to "on"'
-        )
+        expected = 'tell application "MoneyMoney" to set transaction id 99999 checkmark to "on"'
         mock_run.assert_called_once_with(expected)
 
 

@@ -118,32 +118,53 @@ class TestComputeSpending:
     def test_basic_aggregation(self) -> None:
         txs = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-45.00"),
-                currency="EUR", name="REWE", purpose="Einkauf",
-                category_id="cat-food", category_name="Lebensmittel",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="Einkauf",
+                category_id="cat-food",
+                category_name="Lebensmittel",
             ),
             Transaction(
-                id="2", account_id="acc1", booking_date=date(2026, 1, 10),
-                value_date=date(2026, 1, 10), amount=Decimal("-30.00"),
-                currency="EUR", name="Aldi", purpose="Einkauf",
-                category_id="cat-food", category_name="Lebensmittel",
+                id="2",
+                account_id="acc1",
+                booking_date=date(2026, 1, 10),
+                value_date=date(2026, 1, 10),
+                amount=Decimal("-30.00"),
+                currency="EUR",
+                name="Aldi",
+                purpose="Einkauf",
+                category_id="cat-food",
+                category_name="Lebensmittel",
             ),
             Transaction(
-                id="3", account_id="acc1", booking_date=date(2026, 1, 15),
-                value_date=date(2026, 1, 15), amount=Decimal("3500.00"),
-                currency="EUR", name="Gehalt", purpose="Lohn",
-                category_id="cat-salary", category_name="Gehalt",
+                id="3",
+                account_id="acc1",
+                booking_date=date(2026, 1, 15),
+                value_date=date(2026, 1, 15),
+                amount=Decimal("3500.00"),
+                currency="EUR",
+                name="Gehalt",
+                purpose="Lohn",
+                category_id="cat-salary",
+                category_name="Gehalt",
             ),
         ]
         cats = [
             Category(
-                id="cat-food", name="Lebensmittel",
+                id="cat-food",
+                name="Lebensmittel",
                 category_type=CategoryType.EXPENSE,
-                budget=Decimal("500"), budget_period="monthly",
+                budget=Decimal("500"),
+                budget_period="monthly",
             ),
             Category(
-                id="cat-salary", name="Gehalt",
+                id="cat-salary",
+                name="Gehalt",
                 category_type=CategoryType.INCOME,
             ),
         ]
@@ -163,18 +184,30 @@ class TestComputeSpending:
     def test_with_comparison(self) -> None:
         current = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-100.00"),
-                currency="EUR", name="Store", purpose="",
-                category_id="cat1", category_name="Shopping",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-100.00"),
+                currency="EUR",
+                name="Store",
+                purpose="",
+                category_id="cat1",
+                category_name="Shopping",
             ),
         ]
         compare = [
             Transaction(
-                id="2", account_id="acc1", booking_date=date(2025, 12, 5),
-                value_date=date(2025, 12, 5), amount=Decimal("-80.00"),
-                currency="EUR", name="Store", purpose="",
-                category_id="cat1", category_name="Shopping",
+                id="2",
+                account_id="acc1",
+                booking_date=date(2025, 12, 5),
+                value_date=date(2025, 12, 5),
+                amount=Decimal("-80.00"),
+                currency="EUR",
+                name="Store",
+                purpose="",
+                category_id="cat1",
+                category_name="Shopping",
             ),
         ]
         cats = [
@@ -190,10 +223,16 @@ class TestComputeSpending:
     def test_uncategorized_transactions(self) -> None:
         txs = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2026, 1, 5),
-                value_date=date(2026, 1, 5), amount=Decimal("-20.00"),
-                currency="EUR", name="Unknown", purpose="",
-                category_id=None, category_name=None,
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 1, 5),
+                value_date=date(2026, 1, 5),
+                amount=Decimal("-20.00"),
+                currency="EUR",
+                name="Unknown",
+                purpose="",
+                category_id=None,
+                category_name=None,
             ),
         ]
         results = compute_spending(txs, [])
@@ -211,19 +250,34 @@ class TestComputeCashflow:
 
         txs = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2025, 5, 10),
-                value_date=date(2025, 5, 10), amount=Decimal("3500.00"),
-                currency="EUR", name="Salary", purpose="",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2025, 5, 10),
+                value_date=date(2025, 5, 10),
+                amount=Decimal("3500.00"),
+                currency="EUR",
+                name="Salary",
+                purpose="",
             ),
             Transaction(
-                id="2", account_id="acc1", booking_date=date(2025, 5, 15),
-                value_date=date(2025, 5, 15), amount=Decimal("-200.00"),
-                currency="EUR", name="Shop", purpose="",
+                id="2",
+                account_id="acc1",
+                booking_date=date(2025, 5, 15),
+                value_date=date(2025, 5, 15),
+                amount=Decimal("-200.00"),
+                currency="EUR",
+                name="Shop",
+                purpose="",
             ),
             Transaction(
-                id="3", account_id="acc1", booking_date=date(2025, 6, 5),
-                value_date=date(2025, 6, 5), amount=Decimal("-50.00"),
-                currency="EUR", name="Cafe", purpose="",
+                id="3",
+                account_id="acc1",
+                booking_date=date(2025, 6, 5),
+                value_date=date(2025, 6, 5),
+                amount=Decimal("-50.00"),
+                currency="EUR",
+                name="Cafe",
+                purpose="",
             ),
         ]
 
@@ -245,14 +299,24 @@ class TestComputeCashflow:
 
         txs = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2025, 4, 10),
-                value_date=date(2025, 4, 10), amount=Decimal("1000.00"),
-                currency="EUR", name="Income", purpose="",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2025, 4, 10),
+                value_date=date(2025, 4, 10),
+                amount=Decimal("1000.00"),
+                currency="EUR",
+                name="Income",
+                purpose="",
             ),
             Transaction(
-                id="2", account_id="acc1", booking_date=date(2025, 5, 10),
-                value_date=date(2025, 5, 10), amount=Decimal("-500.00"),
-                currency="EUR", name="Expense", purpose="",
+                id="2",
+                account_id="acc1",
+                booking_date=date(2025, 5, 10),
+                value_date=date(2025, 5, 10),
+                amount=Decimal("-500.00"),
+                currency="EUR",
+                name="Expense",
+                purpose="",
             ),
         ]
 
@@ -278,14 +342,19 @@ class TestDetectRecurring:
     def test_detect_monthly_subscription(self) -> None:
         txs = []
         for m in range(1, 7):
-            txs.append(Transaction(
-                id=f"nf-{m}", account_id="acc1",
-                booking_date=date(2025, m, 5),
-                value_date=date(2025, m, 5),
-                amount=Decimal("-12.99"),
-                currency="EUR", name="NETFLIX.COM", purpose="Netflix",
-                category_name="Streaming",
-            ))
+            txs.append(
+                Transaction(
+                    id=f"nf-{m}",
+                    account_id="acc1",
+                    booking_date=date(2025, m, 5),
+                    value_date=date(2025, m, 5),
+                    amount=Decimal("-12.99"),
+                    currency="EUR",
+                    name="NETFLIX.COM",
+                    purpose="Netflix",
+                    category_name="Streaming",
+                )
+            )
 
         results = detect_recurring(txs, min_occurrences=3)
 
@@ -298,18 +367,24 @@ class TestDetectRecurring:
     def test_below_threshold(self) -> None:
         txs = [
             Transaction(
-                id="1", account_id="acc1",
+                id="1",
+                account_id="acc1",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-10.00"),
-                currency="EUR", name="OneTime", purpose="",
+                currency="EUR",
+                name="OneTime",
+                purpose="",
             ),
             Transaction(
-                id="2", account_id="acc1",
+                id="2",
+                account_id="acc1",
                 booking_date=date(2025, 2, 5),
                 value_date=date(2025, 2, 5),
                 amount=Decimal("-10.00"),
-                currency="EUR", name="OneTime", purpose="",
+                currency="EUR",
+                name="OneTime",
+                purpose="",
             ),
         ]
         results = detect_recurring(txs, min_occurrences=3)
@@ -328,21 +403,36 @@ class TestComputeMerchantSummary:
     def test_basic_merchant_grouping(self) -> None:
         txs = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2025, 1, 5),
-                value_date=date(2025, 1, 5), amount=Decimal("-45.50"),
-                currency="EUR", name="REWE", purpose="",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2025, 1, 5),
+                value_date=date(2025, 1, 5),
+                amount=Decimal("-45.50"),
+                currency="EUR",
+                name="REWE",
+                purpose="",
                 category_name="Lebensmittel",
             ),
             Transaction(
-                id="2", account_id="acc1", booking_date=date(2025, 1, 15),
-                value_date=date(2025, 1, 15), amount=Decimal("-30.00"),
-                currency="EUR", name="REWE", purpose="",
+                id="2",
+                account_id="acc1",
+                booking_date=date(2025, 1, 15),
+                value_date=date(2025, 1, 15),
+                amount=Decimal("-30.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="",
                 category_name="Lebensmittel",
             ),
             Transaction(
-                id="3", account_id="acc1", booking_date=date(2025, 1, 10),
-                value_date=date(2025, 1, 10), amount=Decimal("-12.99"),
-                currency="EUR", name="NETFLIX.COM", purpose="",
+                id="3",
+                account_id="acc1",
+                booking_date=date(2025, 1, 10),
+                value_date=date(2025, 1, 10),
+                amount=Decimal("-12.99"),
+                currency="EUR",
+                name="NETFLIX.COM",
+                purpose="",
                 category_name="Streaming",
             ),
         ]
@@ -358,14 +448,24 @@ class TestComputeMerchantSummary:
     def test_type_filter_expense(self) -> None:
         txs = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2025, 1, 5),
-                value_date=date(2025, 1, 5), amount=Decimal("-50.00"),
-                currency="EUR", name="Shop", purpose="",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2025, 1, 5),
+                value_date=date(2025, 1, 5),
+                amount=Decimal("-50.00"),
+                currency="EUR",
+                name="Shop",
+                purpose="",
             ),
             Transaction(
-                id="2", account_id="acc1", booking_date=date(2025, 1, 10),
-                value_date=date(2025, 1, 10), amount=Decimal("3500.00"),
-                currency="EUR", name="Salary", purpose="",
+                id="2",
+                account_id="acc1",
+                booking_date=date(2025, 1, 10),
+                value_date=date(2025, 1, 10),
+                amount=Decimal("3500.00"),
+                currency="EUR",
+                name="Salary",
+                purpose="",
             ),
         ]
 
@@ -377,9 +477,14 @@ class TestComputeMerchantSummary:
     def test_limit(self) -> None:
         txs = [
             Transaction(
-                id=str(i), account_id="acc1", booking_date=date(2025, 1, i + 1),
-                value_date=date(2025, 1, i + 1), amount=Decimal(f"-{i * 10}"),
-                currency="EUR", name=f"Merchant{i}", purpose="",
+                id=str(i),
+                account_id="acc1",
+                booking_date=date(2025, 1, i + 1),
+                value_date=date(2025, 1, i + 1),
+                amount=Decimal(f"-{i * 10}"),
+                currency="EUR",
+                name=f"Merchant{i}",
+                purpose="",
             )
             for i in range(1, 10)
         ]
@@ -394,27 +499,47 @@ class TestComputeTopCustomers:
     def test_top_customers_income_only(self) -> None:
         txs = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2025, 1, 10),
-                value_date=date(2025, 1, 10), amount=Decimal("5000.00"),
-                currency="EUR", name="Big Client", purpose="Invoice",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2025, 1, 10),
+                value_date=date(2025, 1, 10),
+                amount=Decimal("5000.00"),
+                currency="EUR",
+                name="Big Client",
+                purpose="Invoice",
                 category_name="Rechnungen",
             ),
             Transaction(
-                id="2", account_id="acc1", booking_date=date(2025, 2, 10),
-                value_date=date(2025, 2, 10), amount=Decimal("3000.00"),
-                currency="EUR", name="Big Client", purpose="Invoice",
+                id="2",
+                account_id="acc1",
+                booking_date=date(2025, 2, 10),
+                value_date=date(2025, 2, 10),
+                amount=Decimal("3000.00"),
+                currency="EUR",
+                name="Big Client",
+                purpose="Invoice",
                 category_name="Rechnungen",
             ),
             Transaction(
-                id="3", account_id="acc1", booking_date=date(2025, 1, 15),
-                value_date=date(2025, 1, 15), amount=Decimal("1000.00"),
-                currency="EUR", name="Small Client", purpose="Invoice",
+                id="3",
+                account_id="acc1",
+                booking_date=date(2025, 1, 15),
+                value_date=date(2025, 1, 15),
+                amount=Decimal("1000.00"),
+                currency="EUR",
+                name="Small Client",
+                purpose="Invoice",
                 category_name="Rechnungen",
             ),
             Transaction(
-                id="4", account_id="acc1", booking_date=date(2025, 1, 5),
-                value_date=date(2025, 1, 5), amount=Decimal("-50.00"),
-                currency="EUR", name="Expense", purpose="",
+                id="4",
+                account_id="acc1",
+                booking_date=date(2025, 1, 5),
+                value_date=date(2025, 1, 5),
+                amount=Decimal("-50.00"),
+                currency="EUR",
+                name="Expense",
+                purpose="",
             ),
         ]
 
@@ -431,9 +556,14 @@ class TestComputeTopCustomers:
     def test_no_income(self) -> None:
         txs = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2025, 1, 5),
-                value_date=date(2025, 1, 5), amount=Decimal("-50.00"),
-                currency="EUR", name="Expense", purpose="",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2025, 1, 5),
+                value_date=date(2025, 1, 5),
+                amount=Decimal("-50.00"),
+                currency="EUR",
+                name="Expense",
+                purpose="",
             ),
         ]
         results = compute_top_customers(txs)
@@ -450,22 +580,35 @@ class TestComputeBalanceHistory:
 
         accounts = [
             Account(
-                id="acc1", name="Girokonto", account_number="123",
-                bank_name="Bank", balance=Decimal("1000.00"),
+                id="acc1",
+                name="Girokonto",
+                account_number="123",
+                bank_name="Bank",
+                balance=Decimal("1000.00"),
                 group="Hauptkonten",
             ),
         ]
 
         txs = [
             Transaction(
-                id="1", account_id="acc1", booking_date=date(2025, 3, 5),
-                value_date=date(2025, 3, 5), amount=Decimal("500.00"),
-                currency="EUR", name="Income", purpose="",
+                id="1",
+                account_id="acc1",
+                booking_date=date(2025, 3, 5),
+                value_date=date(2025, 3, 5),
+                amount=Decimal("500.00"),
+                currency="EUR",
+                name="Income",
+                purpose="",
             ),
             Transaction(
-                id="2", account_id="acc1", booking_date=date(2025, 2, 10),
-                value_date=date(2025, 2, 10), amount=Decimal("-200.00"),
-                currency="EUR", name="Expense", purpose="",
+                id="2",
+                account_id="acc1",
+                booking_date=date(2025, 2, 10),
+                value_date=date(2025, 2, 10),
+                amount=Decimal("-200.00"),
+                currency="EUR",
+                name="Expense",
+                purpose="",
             ),
         ]
 
@@ -486,8 +629,11 @@ class TestComputeBalanceHistory:
 
         accounts = [
             Account(
-                id="acc1", name="Girokonto", account_number="123",
-                bank_name="Bank", balance=Decimal("1000.00"),
+                id="acc1",
+                name="Girokonto",
+                account_number="123",
+                bank_name="Bank",
+                balance=Decimal("1000.00"),
             ),
         ]
 
@@ -505,48 +651,91 @@ class TestTransferFiltering:
     def test_get_transfer_category_ids(self) -> None:
         cats = [
             Category(
-                id="cat-umbuchungen", name="Umbuchungen",
+                id="cat-umbuchungen",
+                name="Umbuchungen",
                 category_type=CategoryType.EXPENSE,
-                indentation=0, group=True,
+                indentation=0,
+                group=True,
                 path="Umbuchungen",
             ),
             Category(
-                id="cat-echte", name="Echte Umbuchung",
+                id="cat-echte",
+                name="Echte Umbuchung",
                 category_type=CategoryType.EXPENSE,
-                indentation=1, group=False,
+                indentation=1,
+                group=False,
                 path="Umbuchungen\\Echte Umbuchung",
             ),
             Category(
-                id="cat-kk", name="Kreditkarten Abrechnung",
+                id="cat-kk",
+                name="Kreditkarten Abrechnung",
                 category_type=CategoryType.EXPENSE,
-                indentation=1, group=False,
+                indentation=1,
+                group=False,
                 path="Umbuchungen\\Kreditkarten Abrechnung",
             ),
             Category(
-                id="cat-food", name="Lebensmittel",
+                id="cat-food",
+                name="Lebensmittel",
                 category_type=CategoryType.EXPENSE,
                 path="Haushalt\\Lebensmittel",
             ),
         ]
 
-        ids = get_transfer_category_ids(cats)
+        ids = get_transfer_category_ids(cats, "Umbuchungen")
 
         assert ids == {"cat-umbuchungen", "cat-echte", "cat-kk"}
         assert "cat-food" not in ids
+
+    def test_get_transfer_category_ids_empty_name(self) -> None:
+        """With empty transfer_category name, returns empty set."""
+        cats = [
+            Category(
+                id="cat-umbuchungen",
+                name="Umbuchungen",
+                category_type=CategoryType.EXPENSE,
+                indentation=0,
+                group=True,
+                path="Umbuchungen",
+            ),
+        ]
+
+        ids = get_transfer_category_ids(cats, "")
+        assert ids == set()
+
+    def test_get_transfer_category_ids_no_argument(self) -> None:
+        """Default (no transfer_category) returns empty set."""
+        cats = [
+            Category(
+                id="cat-umbuchungen",
+                name="Umbuchungen",
+                category_type=CategoryType.EXPENSE,
+                indentation=0,
+                group=True,
+                path="Umbuchungen",
+            ),
+        ]
+
+        ids = get_transfer_category_ids(cats)
+        assert ids == set()
 
     def test_filter_transfers_removes_transfer_txs(self) -> None:
         transfer_ids = {"cat-kk", "cat-echte"}
         txs = [
             Transaction(
-                id="1", account_id="acc1",
+                id="1",
+                account_id="acc1",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-45.00"),
-                currency="EUR", name="REWE", purpose="",
+                currency="EUR",
+                name="REWE",
+                purpose="",
                 category_id="cat-food",
             ),
             Transaction(
-                id="2", account_id="acc1",
+                id="2",
+                account_id="acc1",
                 booking_date=date(2025, 1, 10),
                 value_date=date(2025, 1, 10),
                 amount=Decimal("-2000.00"),
@@ -556,7 +745,8 @@ class TestTransferFiltering:
                 category_id="cat-kk",
             ),
             Transaction(
-                id="3", account_id="acc1",
+                id="3",
+                account_id="acc1",
                 booking_date=date(2025, 1, 10),
                 value_date=date(2025, 1, 10),
                 amount=Decimal("2000.00"),
@@ -577,11 +767,14 @@ class TestTransferFiltering:
         transfer_ids = {"cat-kk"}
         txs = [
             Transaction(
-                id="1", account_id="acc1",
+                id="1",
+                account_id="acc1",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-20.00"),
-                currency="EUR", name="Unknown", purpose="",
+                currency="EUR",
+                name="Unknown",
+                purpose="",
                 category_id=None,
             ),
         ]
@@ -598,17 +791,20 @@ class TestIBANTransferDetection:
         """Transfer between accounts in the same group should be excluded."""
         txs = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
+                id="1",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-1000.00"),
-                currency="EUR", name="Umbuchung",
+                currency="EUR",
+                name="Umbuchung",
                 purpose="Spareinlage",
                 counterparty_iban="DE27100777770209299700",  # Privat Tagesgeld
             ),
         ]
         filtered = filter_transfers(
-            txs, set(),
+            txs,
+            set(),
             accounts=multi_group_accounts,
             active_groups=["Privat"],
         )
@@ -618,17 +814,20 @@ class TestIBANTransferDetection:
         """Transfer from cognovis to Privat (salary) should be kept when groups active."""
         txs = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
+                id="1",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 28),
                 value_date=date(2025, 1, 28),
                 amount=Decimal("3500.00"),
-                currency="EUR", name="cognovis GmbH",
+                currency="EUR",
+                name="cognovis GmbH",
                 purpose="Gehalt",
                 counterparty_iban="DE55370400440999888777",  # cognovis account
             ),
         ]
         filtered = filter_transfers(
-            txs, set(),
+            txs,
+            set(),
             accounts=multi_group_accounts,
             active_groups=["Privat"],
         )
@@ -639,17 +838,20 @@ class TestIBANTransferDetection:
         """Without active_groups, all own-account transfers are excluded."""
         txs = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
+                id="1",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 28),
                 value_date=date(2025, 1, 28),
                 amount=Decimal("3500.00"),
-                currency="EUR", name="cognovis GmbH",
+                currency="EUR",
+                name="cognovis GmbH",
                 purpose="Gehalt",
                 counterparty_iban="DE55370400440999888777",  # cognovis account
             ),
         ]
         filtered = filter_transfers(
-            txs, set(),
+            txs,
+            set(),
             accounts=multi_group_accounts,
             active_groups=None,
         )
@@ -660,18 +862,21 @@ class TestIBANTransferDetection:
         transfer_ids = {"cat-kk-abrechnung"}
         txs = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
+                id="1",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 20),
                 value_date=date(2025, 1, 20),
                 amount=Decimal("-500.00"),
-                currency="EUR", name="Amex",
+                currency="EUR",
+                name="Amex",
                 purpose="KK Abrechnung",
                 category_id="cat-kk-abrechnung",
                 counterparty_iban="",
             ),
         ]
         filtered = filter_transfers(
-            txs, transfer_ids,
+            txs,
+            transfer_ids,
             accounts=multi_group_accounts,
             active_groups=["Privat"],
         )
@@ -682,21 +887,25 @@ class TestIBANTransferDetection:
         transfer_ids = {"cat-kk"}
         txs = [
             Transaction(
-                id="1", account_id="acc1",
+                id="1",
+                account_id="acc1",
                 booking_date=date(2025, 1, 10),
                 value_date=date(2025, 1, 10),
                 amount=Decimal("-500.00"),
-                currency="EUR", name="Amex",
+                currency="EUR",
+                name="Amex",
                 purpose="",
                 category_id="cat-kk",
                 counterparty_iban="DE89370400440532013000",
             ),
             Transaction(
-                id="2", account_id="acc1",
+                id="2",
+                account_id="acc1",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-45.00"),
-                currency="EUR", name="REWE",
+                currency="EUR",
+                name="REWE",
                 purpose="",
                 category_id="cat-food",
             ),
@@ -709,17 +918,20 @@ class TestIBANTransferDetection:
         """Transaction to an external IBAN should always be kept."""
         txs = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
+                id="1",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-45.00"),
-                currency="EUR", name="REWE",
+                currency="EUR",
+                name="REWE",
                 purpose="Einkauf",
                 counterparty_iban="DE12345678901234567890",  # not an own account
             ),
         ]
         filtered = filter_transfers(
-            txs, set(),
+            txs,
+            set(),
             accounts=multi_group_accounts,
             active_groups=["Privat"],
         )
@@ -731,58 +943,69 @@ class TestIBANTransferDetection:
         txs = [
             # Same-group transfer (Privat -> Privat) => excluded
             Transaction(
-                id="1", account_id="uuid-privat-giro",
+                id="1",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-1000.00"),
-                currency="EUR", name="Umbuchung",
+                currency="EUR",
+                name="Umbuchung",
                 purpose="Spareinlage",
                 counterparty_iban="DE27100777770209299700",
             ),
             # Cross-group transfer (cognovis -> Privat salary) => kept
             Transaction(
-                id="2", account_id="uuid-privat-giro",
+                id="2",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 28),
                 value_date=date(2025, 1, 28),
                 amount=Decimal("3500.00"),
-                currency="EUR", name="cognovis GmbH",
+                currency="EUR",
+                name="cognovis GmbH",
                 purpose="Gehalt",
                 counterparty_iban="DE55370400440999888777",
             ),
             # External purchase => kept
             Transaction(
-                id="3", account_id="uuid-privat-giro",
+                id="3",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 10),
                 value_date=date(2025, 1, 10),
                 amount=Decimal("-45.00"),
-                currency="EUR", name="REWE",
+                currency="EUR",
+                name="REWE",
                 purpose="Einkauf",
                 counterparty_iban="DE12345678901234567890",
             ),
             # Category-based transfer (no IBAN) => excluded
             Transaction(
-                id="4", account_id="uuid-privat-giro",
+                id="4",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 20),
                 value_date=date(2025, 1, 20),
                 amount=Decimal("-500.00"),
-                currency="EUR", name="Amex",
+                currency="EUR",
+                name="Amex",
                 purpose="KK Abrechnung",
                 category_id="cat-kk-abrechnung",
                 counterparty_iban="",
             ),
             # Normal expense (no IBAN, no transfer category) => kept
             Transaction(
-                id="5", account_id="uuid-privat-giro",
+                id="5",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 15),
                 value_date=date(2025, 1, 15),
                 amount=Decimal("-12.99"),
-                currency="EUR", name="Netflix",
+                currency="EUR",
+                name="Netflix",
                 purpose="Streaming",
                 category_id="cat-streaming",
             ),
         ]
         filtered = filter_transfers(
-            txs, transfer_ids,
+            txs,
+            transfer_ids,
             accounts=multi_group_accounts,
             active_groups=["Privat"],
         )
@@ -803,21 +1026,25 @@ class TestExtractTransfers:
         transfer_ids = {"cat-kk-abrechnung"}
         txs = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
+                id="1",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 20),
                 value_date=date(2025, 1, 20),
                 amount=Decimal("-500.00"),
-                currency="EUR", name="Amex",
+                currency="EUR",
+                name="Amex",
                 purpose="KK Abrechnung",
                 category_id="cat-kk-abrechnung",
                 counterparty_iban="",
             ),
             Transaction(
-                id="2", account_id="uuid-privat-giro",
+                id="2",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-45.00"),
-                currency="EUR", name="REWE",
+                currency="EUR",
+                name="REWE",
                 purpose="Einkauf",
                 category_id="cat-food",
             ),
@@ -830,20 +1057,24 @@ class TestExtractTransfers:
         """Transactions whose counterparty IBAN matches own accounts should be extracted."""
         txs = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
+                id="1",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-1000.00"),
-                currency="EUR", name="Umbuchung",
+                currency="EUR",
+                name="Umbuchung",
                 purpose="Spareinlage",
                 counterparty_iban="DE27100777770209299700",  # Privat Tagesgeld
             ),
             Transaction(
-                id="2", account_id="uuid-privat-giro",
+                id="2",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 10),
                 value_date=date(2025, 1, 10),
                 amount=Decimal("-45.00"),
-                currency="EUR", name="REWE",
+                currency="EUR",
+                name="REWE",
                 purpose="Einkauf",
                 counterparty_iban="DE12345678901234567890",  # external
             ),
@@ -857,21 +1088,25 @@ class TestExtractTransfers:
         txs = [
             # Cross-group transfer (cognovis -> Privat salary)
             Transaction(
-                id="1", account_id="uuid-privat-giro",
+                id="1",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 28),
                 value_date=date(2025, 1, 28),
                 amount=Decimal("3500.00"),
-                currency="EUR", name="cognovis GmbH",
+                currency="EUR",
+                name="cognovis GmbH",
                 purpose="Gehalt",
                 counterparty_iban="DE55370400440999888777",  # cognovis account
             ),
             # Same-group transfer
             Transaction(
-                id="2", account_id="uuid-privat-giro",
+                id="2",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-1000.00"),
-                currency="EUR", name="Umbuchung",
+                currency="EUR",
+                name="Umbuchung",
                 purpose="Spareinlage",
                 counterparty_iban="DE27100777770209299700",  # Privat Tagesgeld
             ),
@@ -887,21 +1122,25 @@ class TestExtractTransfers:
         """External transactions should not be returned."""
         txs = [
             Transaction(
-                id="1", account_id="uuid-privat-giro",
+                id="1",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-45.00"),
-                currency="EUR", name="REWE",
+                currency="EUR",
+                name="REWE",
                 purpose="Einkauf",
                 counterparty_iban="DE12345678901234567890",  # external
                 category_id="cat-food",
             ),
             Transaction(
-                id="2", account_id="uuid-privat-giro",
+                id="2",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 15),
                 value_date=date(2025, 1, 15),
                 amount=Decimal("-12.99"),
-                currency="EUR", name="Netflix",
+                currency="EUR",
+                name="Netflix",
                 purpose="Streaming",
                 category_id="cat-streaming",
             ),
@@ -915,43 +1154,51 @@ class TestExtractTransfers:
         txs = [
             # IBAN-based own-account transfer
             Transaction(
-                id="1", account_id="uuid-privat-giro",
+                id="1",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 5),
                 value_date=date(2025, 1, 5),
                 amount=Decimal("-1000.00"),
-                currency="EUR", name="Umbuchung",
+                currency="EUR",
+                name="Umbuchung",
                 purpose="Spareinlage",
                 counterparty_iban="DE27100777770209299700",
             ),
             # Category-based transfer (no IBAN)
             Transaction(
-                id="2", account_id="uuid-privat-giro",
+                id="2",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 20),
                 value_date=date(2025, 1, 20),
                 amount=Decimal("-500.00"),
-                currency="EUR", name="Amex",
+                currency="EUR",
+                name="Amex",
                 purpose="KK Abrechnung",
                 category_id="cat-kk-abrechnung",
                 counterparty_iban="",
             ),
             # External purchase
             Transaction(
-                id="3", account_id="uuid-privat-giro",
+                id="3",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 10),
                 value_date=date(2025, 1, 10),
                 amount=Decimal("-45.00"),
-                currency="EUR", name="REWE",
+                currency="EUR",
+                name="REWE",
                 purpose="Einkauf",
                 counterparty_iban="DE12345678901234567890",
                 category_id="cat-food",
             ),
             # Normal expense (no IBAN, no transfer category)
             Transaction(
-                id="4", account_id="uuid-privat-giro",
+                id="4",
+                account_id="uuid-privat-giro",
                 booking_date=date(2025, 1, 15),
                 value_date=date(2025, 1, 15),
                 amount=Decimal("-12.99"),
-                currency="EUR", name="Netflix",
+                currency="EUR",
+                name="Netflix",
                 purpose="Streaming",
                 category_id="cat-streaming",
             ),
@@ -959,7 +1206,8 @@ class TestExtractTransfers:
         extracted = extract_transfers(txs, transfer_ids, accounts=multi_group_accounts)
         # filter_transfers without active_groups doesn't have cross-group exception
         filtered = filter_transfers(
-            txs, transfer_ids,
+            txs,
+            transfer_ids,
             accounts=multi_group_accounts,
             active_groups=None,
         )
