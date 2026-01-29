@@ -24,6 +24,7 @@ from mm_cli.analysis import (
 from mm_cli.applescript import (
     EXPORT_FORMATS,
     AppleScriptError,
+    MoneyMoneyLockedError,
     MoneyMoneyNotRunningError,
     create_bank_transfer,
     export_accounts,
@@ -64,6 +65,7 @@ app = typer.Typer(
     name="mm",
     help="CLI for MoneyMoney macOS app - manage accounts, transactions and categories",
     no_args_is_help=True,
+    context_settings={"help_option_names": ["-h", "--help"]},
 )
 
 
@@ -71,6 +73,9 @@ def handle_applescript_error(e: Exception) -> None:
     """Handle AppleScript errors with user-friendly messages."""
     if isinstance(e, MoneyMoneyNotRunningError):
         print_error("MoneyMoney is not running. Please start the application first.")
+        raise typer.Exit(1)
+    elif isinstance(e, MoneyMoneyLockedError):
+        print_error("MoneyMoney is locked. Please unlock it first.")
         raise typer.Exit(1)
     elif isinstance(e, AppleScriptError):
         print_error(f"MoneyMoney error: {e}")
@@ -702,14 +707,22 @@ def suggest_rules_cmd(
     ones to suggest auto-categorization rules. Also checks existing rules
     for coverage gaps.
 
+    Defaults to the last 30 days if no date range is specified.
+
     Examples:
+        mm suggest-rules
         mm suggest-rules --from 2026-01-01 --to 2026-01-31
         mm suggest-rules --history 12 --format json
     """
     try:
-        # Parse dates
-        start = parse_date(from_date) if from_date else None
-        end = parse_date(to_date) if to_date else None
+        # Parse dates - default to last 30 days if no range specified
+        if from_date or to_date:
+            start = parse_date(from_date) if from_date else None
+            end = parse_date(to_date) if to_date else None
+        else:
+            # Default to last 30 days
+            end = date.today()
+            start = end - timedelta(days=30)
 
         # Get uncategorized transactions in the target range
         target_txs = export_transactions(from_date=start, to_date=end)
@@ -721,8 +734,6 @@ def suggest_rules_cmd(
 
         # Get historical categorized transactions for pattern matching
         # Go back history_months from the earliest uncategorized date
-        from datetime import timedelta
-
         earliest = min(tx.booking_date for tx in uncategorized)
         history_start = earliest - timedelta(days=history_months * 30)
 
@@ -795,7 +806,11 @@ def portfolio(
         handle_applescript_error(e)
 
 
-analyze_app = typer.Typer(name="analyze", help="Analyze financial data")
+analyze_app = typer.Typer(
+    name="analyze",
+    help="Analyze financial data",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 app.add_typer(analyze_app)
 
 

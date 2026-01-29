@@ -29,6 +29,12 @@ class MoneyMoneyNotRunningError(AppleScriptError):
     pass
 
 
+class MoneyMoneyLockedError(AppleScriptError):
+    """Raised when MoneyMoney database is locked (needs unlock)."""
+
+    pass
+
+
 def run_applescript(script: str) -> str:
     """Execute AppleScript via osascript and return the result.
 
@@ -52,12 +58,16 @@ def run_applescript(script: str) -> str:
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr.strip()
-        if "MoneyMoney got an error" in error_msg:
-            raise AppleScriptError(f"MoneyMoney error: {error_msg}") from e
         if "Application isn't running" in error_msg or "not running" in error_msg.lower():
             raise MoneyMoneyNotRunningError(
                 "MoneyMoney is not running. Please start the application."
             ) from e
+        if "Locked database" in error_msg or "-2720" in error_msg:
+            raise MoneyMoneyLockedError(
+                "MoneyMoney database is locked. Please unlock it first."
+            ) from e
+        if "MoneyMoney got an error" in error_msg:
+            raise AppleScriptError(f"MoneyMoney error: {error_msg}") from e
         raise AppleScriptError(f"AppleScript error: {error_msg}") from e
 
 
