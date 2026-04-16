@@ -1,21 +1,77 @@
 # mm-cli
 
+[![PyPI](https://img.shields.io/pypi/v/moneymoney-cli.svg)](https://pypi.org/project/moneymoney-cli/)
+[![Python](https://img.shields.io/pypi/pyversions/moneymoney-cli.svg)](https://pypi.org/project/moneymoney-cli/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 A command-line interface for [MoneyMoney](https://moneymoney-app.com/) on macOS. Talks to MoneyMoney via AppleScript to give you fast, scriptable access to your accounts, transactions, and categories — directly from the terminal.
+
+> **PyPI package name:** `moneymoney-cli`. The command (after install) is `mm`, and the Python import name is `mm_cli`.
+
+## Quickstart
+
+```bash
+# 1. Install (globally, via uv)
+uv tool install moneymoney-cli
+
+# 2. Launch MoneyMoney and unlock it
+open -a MoneyMoney
+
+# 3. Try it
+mm accounts
+```
+
+On first run, macOS will ask whether `osascript` may control MoneyMoney. Approve it — otherwise every command will fail with a permissions error. You can manage this later under *System Settings → Privacy & Security → Automation*.
 
 ## Requirements
 
 - macOS (required for AppleScript)
-- [MoneyMoney](https://moneymoney-app.com/) installed and running
-- Python 3.14+
-- [uv](https://docs.astral.sh/uv/) package manager
+- [MoneyMoney](https://moneymoney-app.com/) installed and unlocked
+- Python 3.12+ (installed automatically by `uv tool install`)
 
 ## Installation
 
+### From PyPI (recommended)
+
 ```bash
-git clone <repo-url>
+uv tool install moneymoney-cli
+```
+
+This installs the `mm` command globally via [`uv`](https://docs.astral.sh/uv/). Verify with:
+
+```bash
+mm --version
+```
+
+If `mm` is not on your `PATH` yet, add the `uv` tool bin directory:
+
+```bash
+export PATH="$(uv tool dir --bin):$PATH"
+```
+
+Alternatives:
+
+```bash
+pipx install moneymoney-cli     # pipx
+pip install moneymoney-cli      # plain pip (into current venv)
+```
+
+### From source
+
+```bash
+git clone https://github.com/sussdorff/mm-cli.git
 cd mm-cli
 uv sync
+uv run mm --help
 ```
+
+For an editable global install during development:
+
+```bash
+uv tool install --editable .
+```
+
+Re-run with `--force` after changing `pyproject.toml`.
 
 All commands are available via `mm`. Run `mm --help` for a full list, or `mm <command> --help` for details on any command.
 
@@ -32,7 +88,7 @@ This interactive command reads your MoneyMoney categories and account groups, th
 - **Transfer category**: The top-level category group containing internal transfers (e.g., transfers between your own accounts, credit card settlements). Transactions in this category are excluded from analysis by default.
 - **Excluded account groups**: Account groups to hide when using `--active` (e.g., a group for closed/dissolved accounts).
 
-Configuration is saved to `~/.config/mm-cli/config.toml`. The tool works without configuration — it just won't filter transfers or exclude account groups until you set it up.
+Configuration is saved to `$XDG_CONFIG_HOME/mm-cli/config.toml` (default: `~/.config/mm-cli/config.toml`). The tool works without configuration — it just won't filter transfers or exclude account groups until you set it up.
 
 ## What you can do
 
@@ -190,13 +246,56 @@ mm transactions --from 2026-01-01 --format csv > transactions.csv
 mm analyze spending --format json | jq '.[] | select(.budget != null)'
 ```
 
+## Troubleshooting
+
+| Symptom | Cause / Fix |
+|---|---|
+| `MoneyMoney is not running` | Launch MoneyMoney (`open -a MoneyMoney`) before running `mm`. |
+| `MoneyMoney is locked` | Unlock MoneyMoney with your password/Touch ID. |
+| `Not authorized to send Apple events to MoneyMoney` | Approve the Automation prompt or enable it under *System Settings → Privacy & Security → Automation → Terminal/iTerm → MoneyMoney*. |
+| `mm: command not found` after install | Add `$(uv tool dir --bin)` to your `PATH`. |
+
 ## Development
 
 ```bash
+git clone https://github.com/sussdorff/mm-cli.git
+cd mm-cli
 uv sync --dev
 uv run pytest
 uv run ruff check .
 ```
+
+### Release workflow
+
+`git-cliff` is configured via [`cliff.toml`](./cliff.toml); PyPI publishing runs through GitHub Trusted Publishing via [`.github/workflows/release.yml`](./.github/workflows/release.yml).
+
+To cut a release:
+
+```bash
+# Bump the version in pyproject.toml and mm_cli/__init__.py, then:
+
+# Refresh the unreleased changelog section
+uv run git-cliff --unreleased --prepend CHANGELOG.md
+
+# Build sdist + wheel and sanity-check locally
+uv build
+uv publish --dry-run dist/*
+
+# Commit the release metadata
+git add CHANGELOG.md pyproject.toml mm_cli/__init__.py uv.lock
+git commit -m "chore(release): prepare v0.2.0"
+
+# Push a tag — the release.yml workflow runs tests, publishes to PyPI, and creates a GitHub release
+git tag v0.2.0
+git push origin main --follow-tags
+```
+
+PyPI Trusted Publishing is configured with:
+- Project name: `moneymoney-cli`
+- Owner: `sussdorff`
+- Repository: `mm-cli`
+- Workflow: `release.yml`
+- Environment: `pypi` (configure under *Repo Settings → Environments*)
 
 ## References
 
@@ -204,4 +303,4 @@ uv run ruff check .
 
 ## License
 
-MIT
+MIT. See [`LICENSE`](./LICENSE).

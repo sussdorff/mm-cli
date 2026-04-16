@@ -1,10 +1,20 @@
 """User configuration for mm-cli."""
 
+import os
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-CONFIG_DIR = Path.home() / ".config" / "mm-cli"
+
+def get_xdg_config_home() -> Path:
+    """Return ``$XDG_CONFIG_HOME`` if set, otherwise ``~/.config``."""
+    xdg = os.environ.get("XDG_CONFIG_HOME")
+    if xdg:
+        return Path(xdg)
+    return Path.home() / ".config"
+
+
+CONFIG_DIR = get_xdg_config_home() / "mm-cli"
 CONFIG_FILE = CONFIG_DIR / "config.toml"
 
 

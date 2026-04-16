@@ -69,6 +69,28 @@ app = typer.Typer(
 )
 
 
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(f"mm-cli version {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            "-V",
+            help="Show version and exit",
+            callback=_version_callback,
+            is_eager=True,
+        ),
+    ] = False,
+) -> None:
+    """CLI for MoneyMoney macOS app."""
+
+
 def handle_applescript_error(e: Exception) -> None:
     """Handle AppleScript errors with user-friendly messages."""
     if isinstance(e, MoneyMoneyNotRunningError):
