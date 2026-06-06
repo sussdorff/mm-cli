@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.1] - 2026-06-06
+
+### Fixed
+- `mm accounts --active` now also excludes accounts nested under configured parent groups.
+
 ## [0.1.0] - 2026-04-16
 
 ### Added
