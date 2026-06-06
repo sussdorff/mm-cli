@@ -38,7 +38,7 @@ from mm_cli.applescript import (
     validate_iban,
 )
 from mm_cli.config import Config, load_config, write_config
-from mm_cli.models import CategoryType, CategoryUsage
+from mm_cli.models import Account, CategoryType, CategoryUsage
 from mm_cli.output import (
     OutputFormat,
     console,
@@ -67,6 +67,19 @@ app = typer.Typer(
     no_args_is_help=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
+
+
+def _account_group_names(account: Account) -> list[str]:
+    """Return every group name that should be considered for account filtering."""
+    groups = account.group_path[:]
+    if account.group and account.group not in groups:
+        groups.append(account.group)
+    return groups
+
+
+def _is_account_excluded(account: Account, excluded_groups: set[str]) -> bool:
+    """Return whether the account is nested under an excluded group."""
+    return any(group.lower() in excluded_groups for group in _account_group_names(account))
 
 
 def _version_callback(value: bool) -> None:
@@ -148,8 +161,8 @@ def accounts(
         # Filter by active (exclude groups configured via 'mm init')
         if active:
             cfg = load_config()
-            excluded_lower = [g.lower() for g in cfg.excluded_groups]
-            accs = [a for a in accs if a.group.lower() not in excluded_lower]
+            excluded_lower = {g.lower() for g in cfg.excluded_groups}
+            accs = [a for a in accs if not _is_account_excluded(a, excluded_lower)]
 
         # Filter by group name(s)
         if group:

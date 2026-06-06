@@ -41,6 +41,8 @@ class Account:
     iban: str = ""
     bic: str = ""
     group: str = ""
+    group_path: list[str] = field(default_factory=list)
+    indentation: int = 0
     portfolio: bool = False
 
     def to_dict(self) -> dict:
@@ -57,6 +59,8 @@ class Account:
             "iban": self.iban,
             "bic": self.bic,
             "group": self.group,
+            "group_path": self.group_path,
+            "indentation": self.indentation,
             "portfolio": self.portfolio,
         }
 

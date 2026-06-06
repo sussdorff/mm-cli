@@ -189,8 +189,8 @@ def export_accounts() -> list[Account]:
     """Export all accounts from MoneyMoney.
 
     MoneyMoney returns a flat list where group items (group=True) act as
-    section headers. All subsequent non-group items belong to the most
-    recent group until a new group appears.
+    section headers. Nested account groups are represented by indentation
+    levels.
 
     Returns:
         List of Account objects with group names assigned.
@@ -199,14 +199,26 @@ def export_accounts() -> list[Account]:
     data = _run_export_script(script)
 
     accounts = []
-    current_group = ""
+    group_stack: list[str] = []
 
     for item in data:
+        if "indentation" in item:
+            indentation = item.get("indentation", 0)
+            group_stack = group_stack[:indentation]
+        else:
+            indentation = len(group_stack)
+
         # Group items are section headers, not actual accounts
         if item.get("group", False):
-            current_group = item.get("name", "")
+            group_name = item.get("name", "")
+            if "indentation" in item:
+                group_stack.append(group_name)
+            else:
+                group_stack = [group_name]
             continue
 
+        group_path = group_stack[:]
+        current_group = group_path[-1] if group_path else ""
         balance, currency = _extract_balance(item.get("balance"))
         account_num = item.get("accountNumber", "")
         iban = account_num if "DE" in str(account_num) else ""
@@ -222,6 +234,8 @@ def export_accounts() -> list[Account]:
             iban=iban,
             bic=item.get("bankCode", ""),
             group=current_group,
+            group_path=group_path,
+            indentation=indentation,
             portfolio=item.get("portfolio", False),
         )
         accounts.append(account)

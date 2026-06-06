@@ -622,6 +622,40 @@ class TestAccountsFilters:
         assert "Girokonto" in result.output
         assert "Altes Konto" not in result.output
 
+    @patch("mm_cli.cli.load_config")
+    @patch("mm_cli.cli.export_accounts")
+    def test_regression_accounts_active_filter_excludes_nested_groups(
+        self, mock_export: MagicMock, mock_config: MagicMock
+    ) -> None:
+        # Guards against --active only checking an account's direct group.
+        mock_config.return_value = Config(excluded_groups=["Closed"])
+        mock_export.return_value = [
+            Account(
+                id="1",
+                name="Checking",
+                account_number="123",
+                bank_name="Bank",
+                balance=Decimal("1000"),
+                group="Open",
+                group_path=["Open"],
+            ),
+            Account(
+                id="2",
+                name="Old Account",
+                account_number="456",
+                bank_name="Bank",
+                balance=Decimal("0"),
+                group="Old Bank",
+                group_path=["Closed", "Old Bank"],
+            ),
+        ]
+
+        result = runner.invoke(app, ["accounts", "--active"])
+
+        assert result.exit_code == 0
+        assert "Checking" in result.output
+        assert "Old Account" not in result.output
+
     @patch("mm_cli.cli.export_accounts")
     def test_accounts_group_filter(self, mock_export: MagicMock) -> None:
         """Test accounts command with --group flag."""

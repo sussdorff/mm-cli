@@ -184,6 +184,58 @@ class TestExportFunctions:
         assert accounts[2].group == "Aufgelöst"
 
     @patch("mm_cli.applescript._run_export_script")
+    def test_regression_export_accounts_preserves_nested_group_path(
+        self, mock_export: MagicMock
+    ) -> None:
+        # Guards against nested account groups being collapsed to the direct group only.
+        mock_export.return_value = [
+            {
+                "name": "Open",
+                "group": True,
+                "indentation": 0,
+            },
+            {
+                "uuid": "open-account",
+                "accountNumber": "DE11111111111111111111",
+                "name": "Checking",
+                "bankName": "Bank",
+                "balance": [[1000.00, "EUR"]],
+                "type": "checking",
+                "group": False,
+                "indentation": 1,
+            },
+            {
+                "name": "Closed",
+                "group": True,
+                "indentation": 0,
+            },
+            {
+                "name": "Old Bank",
+                "group": True,
+                "indentation": 1,
+            },
+            {
+                "uuid": "old-account",
+                "accountNumber": "DE22222222222222222222",
+                "name": "Old Account",
+                "bankName": "Bank",
+                "balance": [[0.00, "EUR"]],
+                "type": "checking",
+                "group": False,
+                "indentation": 2,
+            },
+        ]
+
+        accounts = export_accounts()
+
+        assert accounts[0].group == "Open"
+        assert accounts[0].group_path == ["Open"]
+        assert accounts[0].indentation == 1
+        assert accounts[1].group == "Old Bank"
+        assert accounts[1].group_path == ["Closed", "Old Bank"]
+        assert accounts[1].indentation == 2
+
+    @patch("mm_cli.applescript._run_export_script")
     def test_export_accounts_group_is_string(
         self, mock_export: MagicMock, sample_plist_accounts: list[dict]
     ) -> None:
