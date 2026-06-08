@@ -1,6 +1,6 @@
 [project]
 name = "moneymoney-cli"
-version = "0.1.1"
+version = "0.1.2"
 description = "CLI tool for MoneyMoney macOS app - retrieve accounts, transactions, categories and manage categorization via AppleScript"
 authors = [
     { name = "Malte Sussdorff" },

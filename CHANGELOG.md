@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.2] - 2026-06-08
+
+### Fixed
+- `mm --version` now reports the package version from `pyproject.toml` (single source of truth via `importlib.metadata`).
+
+### Changed
+- Release workflow: maintain the version only in `pyproject.toml`; `__version__` is resolved at import time.
+
+### Documentation
+- README: document [moneymoney-mcp](https://github.com/andre68723/moneymoney-mcp), an MCP server built on `moneymoney-cli` for AI assistant access.
+
 ## [0.1.1] - 2026-06-06
 
 ### Fixed

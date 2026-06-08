@@ -1,26 +1,37 @@
 """Tests for mm_cli.cli module."""
 
+import tomllib
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
+from mm_cli import __version__
 from mm_cli.cli import app
 from mm_cli.config import Config
 from mm_cli.models import Account, Category, CategoryType, Transaction
 
 runner = CliRunner()
 
+_PYPROJECT_PATH = Path(__file__).resolve().parent.parent / "pyproject.toml"
+with _PYPROJECT_PATH.open("rb") as _pyproject_file:
+    _PYPROJECT_VERSION = tomllib.load(_pyproject_file)["project"]["version"]
+
 
 class TestVersionCommand:
     """Tests for version command."""
+
+    def test_version_matches_pyproject(self) -> None:
+        """Runtime version must match pyproject.toml (single source of truth)."""
+        assert __version__ == _PYPROJECT_VERSION
 
     def test_version(self) -> None:
         """Test version command output."""
         result = runner.invoke(app, ["version"])
         assert result.exit_code == 0
-        assert "mm-cli version" in result.output
+        assert f"mm-cli version {_PYPROJECT_VERSION}" in result.output
 
 
 class TestAccountsCommand:

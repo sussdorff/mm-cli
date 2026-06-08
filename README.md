@@ -272,7 +272,7 @@ uv run ruff check .
 To cut a release:
 
 ```bash
-# Bump the version in pyproject.toml and mm_cli/__init__.py, then:
+# Bump the version in pyproject.toml only (__version__ is loaded from there), then:
 
 # Refresh the unreleased changelog section
 uv run git-cliff --unreleased --prepend CHANGELOG.md
@@ -282,7 +282,7 @@ uv build
 uv publish --dry-run dist/*
 
 # Commit the release metadata
-git add CHANGELOG.md pyproject.toml mm_cli/__init__.py uv.lock
+git add CHANGELOG.md pyproject.toml uv.lock
 git commit -m "chore(release): prepare v0.2.0"
 
 # Push a tag — the release.yml workflow runs tests, publishes to PyPI, and creates a GitHub release
@@ -296,6 +296,21 @@ PyPI Trusted Publishing is configured with:
 - Repository: `mm-cli`
 - Workflow: `release.yml`
 - Environment: `pypi` (configure under *Repo Settings → Environments*)
+
+## Integrations
+
+### [moneymoney-mcp](https://github.com/andre68723/moneymoney-mcp)
+
+[moneymoney-mcp](https://github.com/andre68723/moneymoney-mcp) is an MCP server that exposes MoneyMoney to AI assistants (Cursor, Claude Desktop, VS Code, and other MCP hosts). It builds on **`moneymoney-cli`** as the backend — the same `mm` commands and config you use in the terminal, callable from your agent.
+
+Typical setup:
+
+```bash
+uv tool install moneymoney-cli   # provides the `mm` backend
+# then follow the MCP server setup in the moneymoney-mcp repo
+```
+
+If you use both tools, keep `moneymoney-cli` up to date (`uv tool upgrade moneymoney-cli`) so the MCP server picks up fixes and new commands.
 
 ## References
 
