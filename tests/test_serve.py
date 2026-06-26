@@ -341,6 +341,17 @@ class TestAC5AuthAndBind:
         assert mcp._mm_bind_host == "127.0.0.1"  # type: ignore[attr-defined]
         assert mcp._mm_bind_host not in ("0.0.0.0", "::")  # type: ignore[attr-defined]
 
+    def test_regression_api_key_middleware_proxies_starlette_state(
+        self, serve_config: Path
+    ) -> None:
+        # FastMCP reads app.state before Uvicorn starts; the X-Api-Key shim must proxy it.
+        from mm_cli.serve import create_mcp_server
+
+        mcp = create_mcp_server(config_path=serve_config, host="127.0.0.1", port=0)
+        app = mcp.http_app(transport="streamable-http")
+
+        assert app.state is not None
+
     def test_run_server_rejects_wildcard_bind(self, serve_config: Path) -> None:
         from mm_cli.serve import run_server
 

@@ -250,6 +250,9 @@ class ApiKeyBearerMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.app, name)
+
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http":
             headers = list(scope.get("headers", []))
