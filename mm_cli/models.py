@@ -26,6 +26,15 @@ class CategoryType(Enum):
     TRANSFER = "transfer"
 
 
+class PresenceState(str, Enum):
+    """MoneyMoney presence gate states for mm serve."""
+
+    READY = "ready"
+    SCREEN_LOCKED = "screen_locked"
+    MM_NOT_RUNNING = "mm_not_running"
+    PENDING_UNLOCK = "pending_unlock"
+
+
 @dataclass
 class Account:
     """Represents a MoneyMoney account."""

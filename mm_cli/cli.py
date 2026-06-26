@@ -3,6 +3,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -1722,6 +1723,69 @@ def init() -> None:
     console.print(f"  Excluded groups:   {', '.join(excluded_groups) or '(none)'}")
     console.print()
     print_success("Run 'mm accounts --active' or 'mm analyze spending' to use your config.")
+
+
+@app.command()
+def serve(
+    install: Annotated[
+        bool,
+        typer.Option("--install", help="Install LaunchAgent for GUI-session auto-start"),
+    ] = False,
+    uninstall: Annotated[
+        bool,
+        typer.Option("--uninstall", help="Remove LaunchAgent and stop background server"),
+    ] = False,
+    host: Annotated[
+        str | None,
+        typer.Option("--host", help="LAN interface IP to bind (default: from config)"),
+    ] = None,
+    port: Annotated[
+        int | None,
+        typer.Option("--port", help="HTTP port (default: from config)"),
+    ] = None,
+    config_path: Annotated[
+        Path | None,
+        typer.Option("--config", help="Path to mm-cli config TOML"),
+    ] = None,
+    mask_sensitive: Annotated[
+        bool | None,
+        typer.Option("--mask-sensitive", help="Redact IBAN/account numbers in read tool output"),
+    ] = None,
+    transport: Annotated[
+        str,
+        typer.Option("--transport", help="MCP transport: streamable-http or stdio"),
+    ] = "streamable-http",
+) -> None:
+    """Run the MoneyMoney MCP server over Streamable HTTP (or stdio)."""
+    from mm_cli.serve import install_launch_agent, run_server, uninstall_launch_agent
+
+    if install and uninstall:
+        print_error("Use either --install or --uninstall, not both.")
+        raise typer.Exit(1)
+
+    if uninstall:
+        uninstall_launch_agent()
+        print_success("mm serve LaunchAgent removed.")
+        return
+
+    if install:
+        path = install_launch_agent(config_path=config_path)
+        print_success(f"mm serve LaunchAgent installed: {path}")
+        return
+
+    try:
+        run_server(
+            config_path=config_path,
+            host=host,
+            port=port,
+            transport=transport,
+            mask_sensitive=mask_sensitive,
+        )
+    except ValueError as exc:
+        print_error(str(exc))
+        raise typer.Exit(1) from exc
+    except KeyboardInterrupt:
+        print_info("mm serve stopped.")
 
 
 if __name__ == "__main__":

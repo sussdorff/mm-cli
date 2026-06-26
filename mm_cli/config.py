@@ -1,9 +1,13 @@
 """User configuration for mm-cli."""
 
 import os
+import secrets
+import socket
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
+
+DEFAULT_SERVE_PORT = 8765
 
 
 def get_xdg_config_home() -> Path:
@@ -24,6 +28,10 @@ class Config:
 
     transfer_category: str = ""
     excluded_groups: list[str] = field(default_factory=list)
+    bearer_token: str = ""
+    lan_interface: str = ""
+    serve_port: int = DEFAULT_SERVE_PORT
+    mask_sensitive: bool = False
 
 
 def load_config(path: Path | None = None) -> Config:
@@ -46,10 +54,72 @@ def load_config(path: Path | None = None) -> Config:
     except (tomllib.TOMLDecodeError, OSError):
         return Config()
 
+    serve = data.get("serve", {})
+    if isinstance(serve, dict):
+        bearer_token = serve.get("bearer_token", data.get("bearer_token", ""))
+        lan_interface = serve.get("lan_interface", data.get("lan_interface", ""))
+        serve_port = serve.get("serve_port", data.get("serve_port", DEFAULT_SERVE_PORT))
+        mask_sensitive = serve.get("mask_sensitive", data.get("mask_sensitive", False))
+    else:
+        bearer_token = data.get("bearer_token", "")
+        lan_interface = data.get("lan_interface", "")
+        serve_port = data.get("serve_port", DEFAULT_SERVE_PORT)
+        mask_sensitive = data.get("mask_sensitive", False)
+
     return Config(
         transfer_category=data.get("transfer_category", ""),
         excluded_groups=data.get("excluded_groups", []),
+        bearer_token=bearer_token,
+        lan_interface=lan_interface,
+        serve_port=int(serve_port),
+        mask_sensitive=bool(mask_sensitive),
     )
+
+
+def ensure_bearer_token(config: Config, path: Path | None = None) -> tuple[Config, bool]:
+    """Ensure config has a bearer token, generating one if missing.
+
+    Returns:
+        Tuple of (config, was_generated).
+    """
+    if config.bearer_token:
+        return config, False
+    updated = Config(
+        transfer_category=config.transfer_category,
+        excluded_groups=list(config.excluded_groups),
+        bearer_token=secrets.token_hex(32),
+        lan_interface=config.lan_interface,
+        serve_port=config.serve_port,
+        mask_sensitive=config.mask_sensitive,
+    )
+    write_config(updated, path=path)
+    return updated, True
+
+
+def resolve_lan_interface(config: Config) -> str:
+    """Resolve the LAN bind address from config or auto-detect."""
+    if config.lan_interface:
+        return config.lan_interface
+    return detect_lan_ip()
+
+
+def detect_lan_ip() -> str:
+    """Detect a non-loopback LAN IPv4 address for binding.
+
+    Raises:
+        ValueError: If no non-loopback LAN interface can be detected. Falling
+            back to loopback would make ``mm serve`` bind to ``127.0.0.1`` only
+            and become unreachable on the LAN, so we fail loudly instead.
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("8.8.8.8", 80))
+            ip = sock.getsockname()[0]
+            if ip and not ip.startswith("127."):
+                return ip
+    except OSError:
+        pass
+    raise ValueError("Cannot detect LAN interface. Use --host or set lan_interface in config.")
 
 
 def write_config(config: Config, path: Path | None = None) -> Path:
@@ -76,6 +146,14 @@ def write_config(config: Config, path: Path | None = None) -> Path:
         "# Account groups to exclude when using --active flag",
         "# Leave empty or omit if you don't want to exclude any groups",
         _format_toml_string_list("excluded_groups", config.excluded_groups),
+        "",
+        "[serve]",
+        "# Bearer token for mm serve HTTP MCP (auto-generated if empty)",
+        f'bearer_token = "{config.bearer_token}"',
+        "# LAN interface IP to bind (not 0.0.0.0)",
+        f'lan_interface = "{config.lan_interface}"',
+        f"serve_port = {config.serve_port}",
+        f"mask_sensitive = {'true' if config.mask_sensitive else 'false'}",
         "",
     ]
 
