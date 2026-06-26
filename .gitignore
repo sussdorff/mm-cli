@@ -34,6 +34,7 @@ uv.lock
 
 # Beads runtime artifacts (run state, metrics)
 .beads/runs/
+.beads/export-state.json
 
 # Session-close runner artifacts
 .session-close-state.json

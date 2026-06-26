@@ -1,7 +1,22 @@
 # Changelog
 
 
-## [Unreleased]
+## [v2026.06.5] - 2026-06-26
+
+
+
+### Changed
+
+- **lint:** Clear ruff debt + gate ruff/bandit in CI
+
+
+### Fixed
+
+- **mm-cli-4zd:** Suppress Bandit B104 false positive + add AC5 wrong-token test
+
+
+
+## [v2026.06.4] - 2026-06-26
 
 
 
@@ -15,6 +30,12 @@
 - **mm-cli-g4j:** Upgrade aiohttp, starlette, cryptography, mcp to fix CVEs
 
 - 
+
+- **mm-cli-g4j:** Upgrade aiohttp, starlette, cryptography, mcp to fix CVEs
+
+- Worktree-bead-mm-cli-g4j
+
+- Bump version to 2026.06.4
 
 
 
