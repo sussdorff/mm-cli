@@ -304,6 +304,14 @@ def output_transactions(
         data = [tx.to_dict() for tx in transactions]
         if fields:
             field_set = set(fields)
+            if data:
+                available = set(data[0].keys())
+                unknown = [f for f in fields if f not in available]
+                if unknown:
+                    err_console.print(
+                        f"[yellow]![/yellow] Unknown field(s) ignored: {', '.join(unknown)}. "
+                        f"Available: {', '.join(sorted(available))}"
+                    )
             data = [{k: v for k, v in row.items() if k in field_set} for row in data]
         print(json.dumps(data, indent=2, cls=DecimalEncoder))
         return

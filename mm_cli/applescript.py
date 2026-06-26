@@ -443,6 +443,18 @@ def export_transactions(
         )
         transactions.append(transaction)
 
+    # MoneyMoney's transaction export provides the account UUID (accountUuid)
+    # but not the account name. Map UUID -> name via the account list so that
+    # cross-account queries can tell which account each transaction belongs to.
+    if any(tx.account_id and not tx.account_name for tx in transactions):
+        try:
+            name_by_id = {acc.id: acc.name for acc in export_accounts()}
+        except Exception:
+            name_by_id = {}
+        for tx in transactions:
+            if not tx.account_name and tx.account_id in name_by_id:
+                tx.account_name = name_by_id[tx.account_id]
+
     return transactions
 
 

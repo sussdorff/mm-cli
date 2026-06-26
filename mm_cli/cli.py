@@ -410,6 +410,12 @@ def category_usage(
         start = parse_date(from_date) if from_date else None
         end = parse_date(to_date) if to_date else None
 
+        # MoneyMoney's "export transactions" requires an account or a date range;
+        # without either it fails with -1701. Default to the last 12 months.
+        if start is None and end is None:
+            start = date.today() - timedelta(days=365)
+            end = date.today()
+
         # Get transactions
         txs = export_transactions(from_date=start, to_date=end)
 
