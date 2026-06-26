@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import plistlib
+import secrets
 import subprocess
 import sys
 from collections import defaultdict
@@ -242,7 +243,7 @@ class ApiKeyBearerMiddleware:
 
 def _make_token_verifier(expected_token: str) -> DebugTokenVerifier:
     def _validate(token: str) -> bool:
-        return token == expected_token
+        return secrets.compare_digest(token, expected_token)
 
     return DebugTokenVerifier(validate=_validate)
 
