@@ -5,11 +5,37 @@
 
 
 
+### Build
+
+- **release:** Fix version sourcing + gate PyPI publish
+
+
+### Changed
+
+- **mm-cli-g4j:** Upgrade aiohttp, starlette, cryptography, mcp to fix CVEs
+
+- 
+
+
+
+## [v2026.06.3] - 2026-06-26
+
+
+
 ### Added
 
 - **mm-cli-4zd:** Green — AC1 Streamable-HTTP MCP server with bearer auth
 
 - **mm-cli-4zd:** Green — AC2–AC7 read tools use Any for presence error schema
+
+
+### Changed
+
+- **mm-cli-4zd:** Update changelog after first merge from main
+
+- Worktree-bead-mm-cli-4zd
+
+- Bump version to 2026.06.3
 
 
 ### Documentation
@@ -18,6 +44,8 @@
 
 
 ### Fixed
+
+- **mm-cli:** Populate account_name, fix category-usage -1701, warn on unknown --fields
 
 - **mm-cli-4zd:** Use secrets.compare_digest for constant-time bearer token comparison
 
