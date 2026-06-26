@@ -1,6 +1,7 @@
 """Tests for mm_cli.cli module."""
 
 import json
+import re
 import tomllib
 from datetime import date
 from decimal import Decimal
@@ -33,6 +34,13 @@ class TestVersionCommand:
         result = runner.invoke(app, ["version"])
         assert result.exit_code == 0
         assert f"mm-cli version {_PYPROJECT_VERSION}" in result.output
+
+    def test_version_json_format(self) -> None:
+        """Test version command with JSON output."""
+        result = runner.invoke(app, ["version", "--format", "json"])
+        assert result.exit_code == 0
+        assert result.stdout.strip() == f'{{"version": "{_PYPROJECT_VERSION}"}}'
+        assert result.stderr == ""
 
 
 class TestAccountsCommand:
@@ -509,6 +517,55 @@ class TestTransactionsJsonShaping:
         for row in data:
             assert "account_name" in row
             assert row["account_name"] == "Girokonto"
+
+
+class TestTransactionsPagination:
+    """Tests for transactions command with --limit, --offset, and --count."""
+
+    @patch("mm_cli.cli.export_transactions")
+    def test_limit(self, mock_export: MagicMock, sample_transactions) -> None:
+        """Test --limit restricts output to N transactions."""
+        mock_export.return_value = sample_transactions
+
+        result = runner.invoke(app, ["transactions", "--limit", "1"])
+
+        assert result.exit_code == 0
+        assert "Arbeitgeber" in result.output
+        assert "REWE" not in result.output
+        assert "Unknown" not in result.output
+
+    @patch("mm_cli.cli.export_transactions")
+    def test_offset(self, mock_export: MagicMock, sample_transactions) -> None:
+        """Test --offset skips the first N transactions."""
+        mock_export.return_value = sample_transactions
+
+        result = runner.invoke(app, ["transactions", "--offset", "1"])
+
+        assert result.exit_code == 0
+        assert "Arbeitgeber" not in result.output
+        assert "REWE" in result.output
+        assert "Unknown" in result.output
+
+    @patch("mm_cli.cli.export_transactions")
+    def test_count(self, mock_export: MagicMock, sample_transactions) -> None:
+        """Test --count outputs transaction count only."""
+        mock_export.return_value = sample_transactions
+
+        result = runner.invoke(app, ["transactions", "--count"])
+
+        assert result.exit_code == 0
+        assert result.output.strip() == "3"
+        assert "Arbeitgeber" not in result.output
+
+    @patch("mm_cli.cli.export_transactions")
+    def test_limit_offset_count_combined(self, mock_export: MagicMock, sample_transactions) -> None:
+        """Test --limit and --offset combine before --count."""
+        mock_export.return_value = sample_transactions
+
+        result = runner.invoke(app, ["transactions", "--offset", "1", "--limit", "1", "--count"])
+
+        assert result.exit_code == 0
+        assert result.output.strip() == "1"
 
 
 class TestCategoryUsageCommand:
@@ -1005,6 +1062,50 @@ class TestAnalyzeSpending:
 
         assert result.exit_code == 0
         assert "No transactions" in result.output
+
+    @patch("mm_cli.cli.load_config")
+    @patch("mm_cli.cli.date")
+    @patch("mm_cli.cli.export_accounts")
+    @patch("mm_cli.cli.export_categories")
+    @patch("mm_cli.cli.export_transactions")
+    def test_spending_months(
+        self,
+        mock_tx: MagicMock,
+        mock_cat: MagicMock,
+        mock_accs: MagicMock,
+        mock_cli_date: MagicMock,
+        mock_config: MagicMock,
+    ) -> None:
+        """Test analyze spending with --months restricts date range."""
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
+        mock_cli_date.today.return_value = date(2026, 6, 26)
+        mock_cli_date.side_effect = lambda *args, **kw: date(*args, **kw)
+        mock_accs.return_value = []
+        mock_tx.return_value = [
+            Transaction(
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 5, 5),
+                value_date=date(2026, 5, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="Einkauf",
+                category_id="cat1",
+                category_name="Lebensmittel",
+            ),
+        ]
+        mock_cat.return_value = []
+
+        result = runner.invoke(app, ["analyze", "spending", "--months", "3"])
+
+        assert result.exit_code == 0
+        assert "last 3 months" in result.output
+        mock_tx.assert_called_once_with(
+            account_id=None,
+            from_date=date(2026, 4, 1),
+            to_date=date(2026, 6, 26),
+        )
 
 
 class TestAnalyzeCashflow:
@@ -1951,8 +2052,8 @@ class TestExportCommand:
         result = runner.invoke(app, ["export", "--format", "sta"])
 
         assert result.exit_code == 0
-        assert "Exported to temporary file" in result.output
-        assert "/tmp/export.sta" in result.output
+        assert result.stdout.strip() == "/tmp/export.sta"
+        assert result.stderr == ""
 
     @patch("mm_cli.cli.export_transactions")
     def test_export_csv_format(self, mock_export: MagicMock) -> None:
@@ -1962,7 +2063,7 @@ class TestExportCommand:
         result = runner.invoke(app, ["export", "--format", "csv"])
 
         assert result.exit_code == 0
-        assert "/tmp/export.csv" in result.output
+        assert result.stdout.strip() == "/tmp/export.csv"
 
     @patch("mm_cli.cli.export_transactions")
     def test_export_ofx_format(self, mock_export: MagicMock) -> None:
@@ -1972,7 +2073,7 @@ class TestExportCommand:
         result = runner.invoke(app, ["export", "--format", "ofx"])
 
         assert result.exit_code == 0
-        assert "/tmp/export.ofx" in result.output
+        assert result.stdout.strip() == "/tmp/export.ofx"
 
     @patch("mm_cli.cli.export_transactions")
     def test_export_with_date_range(self, mock_export: MagicMock) -> None:
@@ -2211,6 +2312,34 @@ class TestSuggestRulesCommand:
 
         assert result.exit_code == 0
         assert '"pattern"' in result.output
+
+
+class TestNoColor:
+    """Tests for --no-color global flag."""
+
+    _ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
+
+    @patch("mm_cli.cli.export_accounts")
+    def test_no_color_flag_suppresses_ansi(self, mock_export: MagicMock, sample_accounts) -> None:
+        """Test --no-color removes ANSI escape codes from output."""
+        mock_export.return_value = sample_accounts
+
+        result = runner.invoke(app, ["--no-color", "accounts"])
+
+        assert result.exit_code == 0
+        assert "Girokonto" in result.output
+        assert not self._ANSI_ESCAPE.search(result.output)
+
+    @patch("mm_cli.cli.export_accounts")
+    def test_non_tty_suppresses_ansi(self, mock_export: MagicMock, sample_accounts) -> None:
+        """Test piped (non-TTY) output contains no ANSI escape codes."""
+        mock_export.return_value = sample_accounts
+
+        result = runner.invoke(app, ["accounts"], env={"TERM": "dumb"})
+
+        assert result.exit_code == 0
+        assert "Girokonto" in result.output
+        assert not self._ANSI_ESCAPE.search(result.output)
 
 
 class TestEdgeCases:

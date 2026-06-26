@@ -100,8 +100,15 @@ def main(
             is_eager=True,
         ),
     ] = False,
+    no_color: Annotated[
+        bool,
+        typer.Option("--no-color", help="Disable ANSI color codes", is_eager=True),
+    ] = False,
 ) -> None:
     """CLI for MoneyMoney macOS app."""
+    from mm_cli.output import configure_output
+
+    configure_output(no_color=no_color)
 
 
 def handle_applescript_error(e: Exception) -> None:
@@ -130,9 +137,19 @@ def parse_date(date_str: str) -> date:
 
 
 @app.command()
-def version() -> None:
+def version(
+    format: Annotated[
+        str | None,
+        typer.Option("--format", "-f", help="Output format: json"),
+    ] = None,
+) -> None:
     """Show version information."""
-    typer.echo(f"mm-cli version {__version__}")
+    if format == "json":
+        import json as _json
+
+        print(_json.dumps({"version": __version__}))
+    else:
+        typer.echo(f"mm-cli version {__version__}")
 
 
 @app.command()
@@ -243,6 +260,18 @@ def transactions(
         str | None,
         typer.Option("--checkmark", help="Filter by checkmark status: on or off"),
     ] = None,
+    limit: Annotated[
+        int | None,
+        typer.Option("--limit", "-l", help="Limit output to N transactions"),
+    ] = None,
+    offset: Annotated[
+        int | None,
+        typer.Option("--offset", help="Skip first N transactions"),
+    ] = None,
+    count: Annotated[
+        bool,
+        typer.Option("--count", help="Output transaction count only"),
+    ] = False,
     format: Annotated[
         OutputFormat,
         typer.Option("--format", help="Output format"),
@@ -324,6 +353,9 @@ def transactions(
             txs = [tx for tx in txs if tx.checkmark == checked]
 
         if not txs:
+            if count:
+                print(0)
+                return
             print_warning("No transactions found matching the criteria.")
             return
 
@@ -337,6 +369,14 @@ def transactions(
                 txs.sort(key=lambda tx: tx.name.lower(), reverse=reverse)
         elif reverse:
             txs.reverse()
+
+        if offset:
+            txs = txs[offset:]
+        if limit:
+            txs = txs[:limit]
+        if count:
+            print(len(txs))
+            return
 
         field_list = [f.strip() for f in fields.split(",")] if fields else None
         output_transactions(txs, format, fields=field_list)
@@ -492,9 +532,7 @@ def export_file(
                 shutil.copy(temp_path, output_path)
                 print_success(f"Exported to: {output_path}")
             else:
-                # Just print the temp file path
-                print_info(f"Exported to temporary file: {temp_path}")
-                print_info("Use --output/-o to save to a specific location.")
+                print(temp_path)
 
     except Exception as e:
         handle_applescript_error(e)
@@ -872,6 +910,10 @@ def analyze_spending(
         str | None,
         typer.Option("--to", "-t", help="Override end date (YYYY-MM-DD)"),
     ] = None,
+    months: Annotated[
+        int | None,
+        typer.Option("--months", "-m", help="Restrict analysis to last N months"),
+    ] = None,
     compare: Annotated[
         bool,
         typer.Option("--compare", "-c", help="Compare with previous period"),
@@ -930,6 +972,11 @@ def analyze_spending(
             start = parse_date(from_date) if from_date else None
             end = parse_date(to_date) if to_date else None
             label = f"{start or '...'} to {end or '...'}"
+        elif months is not None:
+            today = date.today()
+            start = (today.replace(day=1) - timedelta(days=(months - 1) * 30)).replace(day=1)
+            end = today
+            label = f"last {months} months"
         else:
             start, end, label = resolve_period(period)
 

@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+import sys
 from decimal import Decimal
 from enum import Enum
 from typing import Any
@@ -24,8 +25,24 @@ from mm_cli.models import (
 )
 from mm_cli.rules import RuleSuggestion
 
-console = Console()
-err_console = Console(stderr=True)
+def _make_consoles(*, no_color: bool) -> tuple[Console, Console]:
+    if no_color:
+        return (
+            Console(highlight=False, no_color=True),
+            Console(stderr=True, highlight=False, no_color=True),
+        )
+    return Console(), Console(stderr=True)
+
+
+_no_color = not sys.stdout.isatty()
+console, err_console = _make_consoles(no_color=_no_color)
+
+
+def configure_output(no_color: bool = False) -> None:
+    """Reconfigure output consoles for no-color mode."""
+    global console, err_console
+    disable_color = no_color or not sys.stdout.isatty()
+    console, err_console = _make_consoles(no_color=disable_color)
 
 
 class OutputFormat(str, Enum):
