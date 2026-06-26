@@ -301,12 +301,12 @@ def create_mcp_server(
 
     @mcp.tool(name="list_accounts")
     @_presence_guard(gate, write=False)
-    async def list_accounts() -> list[dict[str, Any]]:
+    async def list_accounts() -> Any:
         return [_serialize_account(acc, mask_sensitive=config.mask_sensitive) for acc in export_accounts()]
 
     @mcp.tool(name="list_categories")
     @_presence_guard(gate, write=False)
-    async def list_categories() -> list[dict[str, Any]]:
+    async def list_categories() -> Any:
         return [cat.to_dict() for cat in export_categories()]
 
     @mcp.tool(name="list_transactions")
@@ -314,7 +314,7 @@ def create_mcp_server(
     async def list_transactions(
         account_uuid: str | None = None,
         days: int = 14,
-    ) -> list[dict[str, Any]]:
+    ) -> Any:
         end = date.today()
         start = end - timedelta(days=days)
         txs = export_transactions(account_id=account_uuid, from_date=start, to_date=end)
@@ -322,12 +322,12 @@ def create_mcp_server(
 
     @mcp.tool(name="list_portfolio")
     @_presence_guard(gate, write=False)
-    async def list_portfolio() -> list[dict[str, Any]]:
+    async def list_portfolio() -> Any:
         return [portfolio.to_dict() for portfolio in export_portfolio()]
 
     @mcp.tool(name="category_usage")
     @_presence_guard(gate, write=False)
-    async def category_usage(days: int = 30, limit: int = 20) -> list[dict[str, Any]]:
+    async def category_usage(days: int = 30, limit: int = 20) -> Any:
         end = date.today()
         start = end - timedelta(days=days)
         usage = _compute_category_usage(from_date=start, to_date=end, limit=limit)
