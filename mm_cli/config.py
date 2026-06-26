@@ -104,7 +104,13 @@ def resolve_lan_interface(config: Config) -> str:
 
 
 def detect_lan_ip() -> str:
-    """Detect a non-loopback LAN IPv4 address for binding."""
+    """Detect a non-loopback LAN IPv4 address for binding.
+
+    Raises:
+        ValueError: If no non-loopback LAN interface can be detected. Falling
+            back to loopback would make ``mm serve`` bind to ``127.0.0.1`` only
+            and become unreachable on the LAN, so we fail loudly instead.
+    """
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.connect(("8.8.8.8", 80))
@@ -113,7 +119,7 @@ def detect_lan_ip() -> str:
                 return ip
     except OSError:
         pass
-    return "127.0.0.1"
+    raise ValueError("Cannot detect LAN interface. Use --host or set lan_interface in config.")
 
 
 def write_config(config: Config, path: Path | None = None) -> Path:

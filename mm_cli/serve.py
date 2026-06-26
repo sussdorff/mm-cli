@@ -56,6 +56,30 @@ LAUNCH_AGENT_LABEL = "de.sussdorff.mm-serve"
 LAUNCH_AGENT_PATH = Path.home() / "Library" / "LaunchAgents" / f"{LAUNCH_AGENT_LABEL}.plist"
 
 
+def _find_console_users(node: object) -> list[Any] | None:
+    """Locate the ``IOConsoleUsers`` array within an ioreg plist node.
+
+    ``ioreg -n Root -d1 -a`` may return either a dict (single matched node) or
+    a top-level array of matched nodes, and ``IOConsoleUsers`` can be nested one
+    level down. Walk the structure defensively so we never call ``.get`` on a
+    list (which would raise ``AttributeError``).
+    """
+    if isinstance(node, dict):
+        users = node.get("IOConsoleUsers")
+        if users is not None:
+            return users if isinstance(users, list) else [users]
+        for value in node.values():
+            found = _find_console_users(value)
+            if found is not None:
+                return found
+    elif isinstance(node, list):
+        for item in node:
+            found = _find_console_users(item)
+            if found is not None:
+                return found
+    return None
+
+
 def is_screen_locked() -> bool:
     """Return whether the console session screen is locked."""
     try:
@@ -67,10 +91,10 @@ def is_screen_locked() -> bool:
         if result.returncode != 0:
             return False
         data = plistlib.loads(result.stdout)
-        users = data.get("IOConsoleUsers")
+        users = _find_console_users(data)
         if not users:
             return False
-        first = users[0] if isinstance(users, list) else users
+        first = users[0]
         if not isinstance(first, dict):
             return False
         return bool(first.get("CGSSessionScreenIsLocked"))
