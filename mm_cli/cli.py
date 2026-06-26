@@ -243,6 +243,18 @@ def transactions(
         str | None,
         typer.Option("--checkmark", help="Filter by checkmark status: on or off"),
     ] = None,
+    limit: Annotated[
+        int | None,
+        typer.Option("--limit", "-l", help="Limit output to N transactions"),
+    ] = None,
+    offset: Annotated[
+        int | None,
+        typer.Option("--offset", help="Skip first N transactions"),
+    ] = None,
+    count: Annotated[
+        bool,
+        typer.Option("--count", help="Output transaction count only"),
+    ] = False,
     format: Annotated[
         OutputFormat,
         typer.Option("--format", help="Output format"),
@@ -320,6 +332,9 @@ def transactions(
             txs = [tx for tx in txs if tx.checkmark == checked]
 
         if not txs:
+            if count:
+                print(0)
+                return
             print_warning("No transactions found matching the criteria.")
             return
 
@@ -333,6 +348,14 @@ def transactions(
                 txs.sort(key=lambda tx: tx.name.lower(), reverse=reverse)
         elif reverse:
             txs.reverse()
+
+        if offset:
+            txs = txs[offset:]
+        if limit:
+            txs = txs[:limit]
+        if count:
+            print(len(txs))
+            return
 
         output_transactions(txs, format)
 
@@ -867,6 +890,10 @@ def analyze_spending(
         str | None,
         typer.Option("--to", "-t", help="Override end date (YYYY-MM-DD)"),
     ] = None,
+    months: Annotated[
+        int | None,
+        typer.Option("--months", "-m", help="Restrict analysis to last N months"),
+    ] = None,
     compare: Annotated[
         bool,
         typer.Option("--compare", "-c", help="Compare with previous period"),
@@ -925,6 +952,11 @@ def analyze_spending(
             start = parse_date(from_date) if from_date else None
             end = parse_date(to_date) if to_date else None
             label = f"{start or '...'} to {end or '...'}"
+        elif months is not None:
+            today = date.today()
+            start = (today.replace(day=1) - timedelta(days=(months - 1) * 30)).replace(day=1)
+            end = today
+            label = f"last {months} months"
         else:
             start, end, label = resolve_period(period)
 
