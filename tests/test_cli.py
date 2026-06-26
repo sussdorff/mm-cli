@@ -481,6 +481,55 @@ class TestTransactionsCheckmarkFilter:
         assert "Invalid checkmark value" in result.output
 
 
+class TestTransactionsPagination:
+    """Tests for transactions command with --limit, --offset, and --count."""
+
+    @patch("mm_cli.cli.export_transactions")
+    def test_limit(self, mock_export: MagicMock, sample_transactions) -> None:
+        """Test --limit restricts output to N transactions."""
+        mock_export.return_value = sample_transactions
+
+        result = runner.invoke(app, ["transactions", "--limit", "1"])
+
+        assert result.exit_code == 0
+        assert "Arbeitgeber" in result.output
+        assert "REWE" not in result.output
+        assert "Unknown" not in result.output
+
+    @patch("mm_cli.cli.export_transactions")
+    def test_offset(self, mock_export: MagicMock, sample_transactions) -> None:
+        """Test --offset skips the first N transactions."""
+        mock_export.return_value = sample_transactions
+
+        result = runner.invoke(app, ["transactions", "--offset", "1"])
+
+        assert result.exit_code == 0
+        assert "Arbeitgeber" not in result.output
+        assert "REWE" in result.output
+        assert "Unknown" in result.output
+
+    @patch("mm_cli.cli.export_transactions")
+    def test_count(self, mock_export: MagicMock, sample_transactions) -> None:
+        """Test --count outputs transaction count only."""
+        mock_export.return_value = sample_transactions
+
+        result = runner.invoke(app, ["transactions", "--count"])
+
+        assert result.exit_code == 0
+        assert result.output.strip() == "3"
+        assert "Arbeitgeber" not in result.output
+
+    @patch("mm_cli.cli.export_transactions")
+    def test_limit_offset_count_combined(self, mock_export: MagicMock, sample_transactions) -> None:
+        """Test --limit and --offset combine before --count."""
+        mock_export.return_value = sample_transactions
+
+        result = runner.invoke(app, ["transactions", "--offset", "1", "--limit", "1", "--count"])
+
+        assert result.exit_code == 0
+        assert result.output.strip() == "1"
+
+
 class TestCategoryUsageCommand:
     """Tests for category-usage command."""
 
@@ -946,6 +995,50 @@ class TestAnalyzeSpending:
 
         assert result.exit_code == 0
         assert "No transactions" in result.output
+
+    @patch("mm_cli.cli.load_config")
+    @patch("mm_cli.cli.date")
+    @patch("mm_cli.cli.export_accounts")
+    @patch("mm_cli.cli.export_categories")
+    @patch("mm_cli.cli.export_transactions")
+    def test_spending_months(
+        self,
+        mock_tx: MagicMock,
+        mock_cat: MagicMock,
+        mock_accs: MagicMock,
+        mock_cli_date: MagicMock,
+        mock_config: MagicMock,
+    ) -> None:
+        """Test analyze spending with --months restricts date range."""
+        mock_config.return_value = Config(transfer_category="Umbuchungen")
+        mock_cli_date.today.return_value = date(2026, 6, 26)
+        mock_cli_date.side_effect = lambda *args, **kw: date(*args, **kw)
+        mock_accs.return_value = []
+        mock_tx.return_value = [
+            Transaction(
+                id="1",
+                account_id="acc1",
+                booking_date=date(2026, 5, 5),
+                value_date=date(2026, 5, 5),
+                amount=Decimal("-45.00"),
+                currency="EUR",
+                name="REWE",
+                purpose="Einkauf",
+                category_id="cat1",
+                category_name="Lebensmittel",
+            ),
+        ]
+        mock_cat.return_value = []
+
+        result = runner.invoke(app, ["analyze", "spending", "--months", "3"])
+
+        assert result.exit_code == 0
+        assert "last 3 months" in result.output
+        mock_tx.assert_called_once_with(
+            account_id=None,
+            from_date=date(2026, 4, 1),
+            to_date=date(2026, 6, 26),
+        )
 
 
 class TestAnalyzeCashflow:

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3] - 2026-06-26
+
+### Added
+- `mm transactions --limit N` — limit output to N transactions
+- `mm transactions --offset N` — skip first N transactions (pagination)
+- `mm transactions --count` — output transaction count only (no listing)
+- `mm analyze spending --months N` — restrict spending analysis to the last N calendar months
+
 ## [0.1.2] - 2026-06-08
 
 ### Fixed
