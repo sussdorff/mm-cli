@@ -1,5 +1,6 @@
 """Tests for mm_cli.cli module."""
 
+import json
 import re
 import tomllib
 from datetime import date
@@ -481,6 +482,43 @@ class TestTransactionsCheckmarkFilter:
         assert "Invalid checkmark value" in result.output
 
 
+class TestTransactionsJsonShaping:
+    """Tests for transactions JSON output shaping."""
+
+    @patch("mm_cli.cli.export_transactions")
+    def test_transactions_json_fields_filter(
+        self, mock_export: MagicMock, sample_transactions
+    ) -> None:
+        """AK1: --fields limits JSON output to requested keys."""
+        mock_export.return_value = sample_transactions
+
+        result = runner.invoke(
+            app, ["transactions", "--format", "json", "--fields", "id,amount"]
+        )
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert len(data) > 0
+        for row in data:
+            assert set(row.keys()) == {"id", "amount"}
+
+    @patch("mm_cli.cli.export_transactions")
+    def test_transactions_json_includes_account_name(
+        self, mock_export: MagicMock, sample_transactions
+    ) -> None:
+        """AK2: JSON output includes account_name per transaction."""
+        mock_export.return_value = sample_transactions
+
+        result = runner.invoke(app, ["transactions", "--format", "json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert len(data) > 0
+        for row in data:
+            assert "account_name" in row
+            assert row["account_name"] == "Girokonto"
+
+
 class TestTransactionsPagination:
     """Tests for transactions command with --limit, --offset, and --count."""
 
@@ -550,6 +588,35 @@ class TestCategoryUsageCommand:
 
         assert result.exit_code == 0
         assert "Category Usage" in result.output
+
+    @patch("mm_cli.cli.export_categories")
+    @patch("mm_cli.cli.export_transactions")
+    def test_category_usage_json_format(
+        self,
+        mock_tx: MagicMock,
+        mock_cat: MagicMock,
+        sample_transactions,
+        sample_categories,
+    ) -> None:
+        """AK3: category-usage --format json returns valid structured JSON."""
+        mock_tx.return_value = sample_transactions
+        mock_cat.return_value = sample_categories
+
+        result = runner.invoke(app, ["category-usage", "--format", "json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert isinstance(data, list)
+        assert len(data) > 0
+        expected_keys = {
+            "category_id",
+            "category_name",
+            "transaction_count",
+            "total_amount",
+            "category_type",
+        }
+        for row in data:
+            assert set(row.keys()) == expected_keys
 
 
 class TestSetCategoryCommand:
