@@ -28,3 +28,9 @@ uv.lock
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+
+# Beads JSONL export is local; Dolt is the source of truth.
+.beads/issues.jsonl
+
+# Beads runtime artifacts (run state, metrics)
+.beads/runs/
