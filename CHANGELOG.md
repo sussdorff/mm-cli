@@ -3,23 +3,57 @@
 
 ## [Unreleased]
 
+
+
 ### Added
 
-- **`mm serve`**: New subcommand that exposes MoneyMoney as a Streamable-HTTP MCP server,
-  making all read and write tools available to AI assistants and other MCP clients over the local network.
-  - Binds to a specific LAN interface (never a wildcard address) for network isolation
-  - Bearer-token authentication auto-generated on first run and stored in config; rejects invalid tokens with 401
-  - Supports `Authorization: Bearer <token>` and `X-Api-Key: <token>` headers
-  - Presence gating: returns `screen_locked`, `pending_unlock`, or `mm_not_running` states before executing tools
-  - Read tools (`list_accounts`, `list_transactions`, `list_categories`, `category_usage`, `list_portfolio`) return structured data via direct import with account UUID handles
-  - Write tools: transfers restricted to outbox-only mode; metadata writes (category, checkmark, comment) operate directly; transfer source resolved by account UUID
-  - `--mask-sensitive` flag redacts IBANs and account numbers in read output while preserving UUIDs (default: off)
-  - `--install` / `--uninstall` manage a LaunchAgent plist (`de.sussdorff.mm-serve`) for automatic startup in GUI sessions
-  - Logs written to `~/Library/Logs/mm-serve.log` and `~/Library/Logs/mm-serve.err.log` when running as LaunchAgent
+- **mm-cli-4zd:** Green — AC1 Streamable-HTTP MCP server with bearer auth
+
+- **mm-cli-4zd:** Green — AC2–AC7 read tools use Any for presence error schema
+
+
+### Documentation
+
+- **mm-cli-4zd:** Update changelog and README for mm serve MCP server command
+
+
+### Fixed
+
+- **mm-cli-4zd:** Use secrets.compare_digest for constant-time bearer token comparison
+
+- **mm-cli-4zd:** Address codex adversarial findings — ioreg parse robustness and loopback fallback error
+
+
+### Tests
+
+- **mm-cli-4zd:** Red — AC1 MCP server endpoint lists tools
+
+- **mm-cli-4zd:** Red — AC2–AC7 acceptance criteria tests
+
+
+
+## [v2026.06.2] - 2026-06-26
+
+
+
+### Added
+
+- **mm-cli-bky:** Add --fields JSON selector, verify accountName and category-usage JSON
+
 
 ### Changed
 
+- Commit main-repo working tree updates (.gitignore and PRIME) before feature merge
+
+- Add beads runtime artifact gitignore entries and update PRIME
+
 - Resolve conflicts with origin/main (pagination + JSON shaping)
+
+- **mm-cli-bky:** Update changelog for mm-cli-bky session close
+
+- Worktree-bead-mm-cli-bky (Backend hardening: JSON shaping --fields, accountName, category-usage json)
+
+- Bump version to 2026.06.2
 
 
 
@@ -61,14 +95,10 @@
 
 ### Added
 
-- **mm-cli-bky:** Add --fields JSON selector, verify accountName and category-usage JSON
-
 - **mm-cli-xtq:** Add --limit/--offset/--count for transactions and --months for analyze spending
 
 
 ### Changed
-
-- Add beads runtime artifact gitignore entries and update PRIME
 
 - **mm-cli-lgq:** Fix CLI I/O hygiene - stdout/stderr/exit, version json, no-color
 
