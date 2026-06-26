@@ -26,8 +26,24 @@ jobs:
       - name: Run test suite
         run: uv run pytest -q
 
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Ruff
+        run: uv run ruff check .
+
+      - name: Bandit
+        run: uv run bandit -c pyproject.toml -r mm_cli -q
+
   publish:
-    needs: test
+    needs: [test, lint]
     # Gate: publish only on an intentional release or manual dispatch,
     # never on a bare tag push (session-close tags every bead close).
     if: github.event_name != 'push'

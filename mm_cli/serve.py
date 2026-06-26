@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import plistlib
 import secrets
 import subprocess
@@ -121,10 +122,8 @@ def activate_moneymoney_and_notify() -> None:
 tell application "MoneyMoney" to activate
 display notification "Unlock MoneyMoney to continue" with title "mm serve"
 """
-    try:
+    with contextlib.suppress(Exception):
         run_applescript(script)
-    except Exception:
-        pass
 
 
 class PresenceGate:
@@ -225,7 +224,9 @@ class ApiKeyBearerAuthBackend(AuthenticationBackend):
     def __init__(self, token_verifier: DebugTokenVerifier) -> None:
         self._backend = BearerAuthBackend(token_verifier)
 
-    async def authenticate(self, conn: HTTPConnection) -> tuple[AuthCredentials, AuthenticatedUser] | None:
+    async def authenticate(
+        self, conn: HTTPConnection
+    ) -> tuple[AuthCredentials, AuthenticatedUser] | None:
         auth_header = next(
             (conn.headers.get(key) for key in conn.headers if key.lower() == "authorization"),
             None,
@@ -327,7 +328,10 @@ def create_mcp_server(
     @mcp.tool(name="list_accounts")
     @_presence_guard(gate, write=False)
     async def list_accounts() -> Any:
-        return [_serialize_account(acc, mask_sensitive=config.mask_sensitive) for acc in export_accounts()]
+        return [
+            _serialize_account(acc, mask_sensitive=config.mask_sensitive)
+            for acc in export_accounts()
+        ]
 
     @mcp.tool(name="list_categories")
     @_presence_guard(gate, write=False)
@@ -509,7 +513,9 @@ def install_launch_agent(*, config_path: Path | None = None) -> Path:
 def uninstall_launch_agent() -> None:
     """Unload and remove the LaunchAgent plist."""
     if LAUNCH_AGENT_PATH.exists():
-        uid = subprocess.run(["id", "-u"], capture_output=True, text=True, check=True).stdout.strip()
+        uid = subprocess.run(
+            ["id", "-u"], capture_output=True, text=True, check=True
+        ).stdout.strip()
         domain = f"gui/{uid}"
         subprocess.run(["launchctl", "bootout", domain, str(LAUNCH_AGENT_PATH)], check=False)
         LAUNCH_AGENT_PATH.unlink(missing_ok=True)

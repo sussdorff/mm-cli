@@ -1,5 +1,6 @@
 """AppleScript interface for MoneyMoney."""
 
+import contextlib
 import plistlib
 import subprocess
 from datetime import date
@@ -294,22 +295,16 @@ def _parse_category_list(
             if isinstance(budget_raw, dict):
                 amount = budget_raw.get("amount")
                 if amount is not None:
-                    try:
+                    with contextlib.suppress(Exception):
                         budget = Decimal(str(amount))
-                    except Exception:
-                        pass
                 budget_period = budget_raw.get("period", "")
                 avail = budget_raw.get("available")
                 if avail is not None:
-                    try:
+                    with contextlib.suppress(Exception):
                         budget_available = Decimal(str(avail))
-                    except Exception:
-                        pass
             else:
-                try:
+                with contextlib.suppress(Exception):
                     budget = Decimal(str(budget_raw))
-                except Exception:
-                    pass
 
         # Trim parent stack to current indentation level
         parent_stack = parent_stack[:indentation]

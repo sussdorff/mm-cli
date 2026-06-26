@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
-from enum import Enum
+from enum import Enum, StrEnum
 
 
 class AccountType(Enum):
@@ -26,7 +26,7 @@ class CategoryType(Enum):
     TRANSFER = "transfer"
 
 
-class PresenceState(str, Enum):
+class PresenceState(StrEnum):
     """MoneyMoney presence gate states for mm serve."""
 
     READY = "ready"

@@ -8,8 +8,6 @@ import plistlib
 import socket
 import threading
 import time
-from datetime import date
-from decimal import Decimal
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -21,15 +19,6 @@ from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 
 from mm_cli.applescript import MoneyMoneyLockedError
-from mm_cli.models import (
-    Account,
-    AccountType,
-    Category,
-    CategoryType,
-    Portfolio,
-    Security,
-    Transaction,
-)
 
 
 @pytest.fixture
@@ -184,8 +173,8 @@ class TestAC3PresenceGate:
     """AC3: presence gating for screen lock, MM state, and unlock flow."""
 
     def test_screen_locked_blocks_applescript(self) -> None:
-        from mm_cli.serve import PresenceGate, presence_error
         from mm_cli.models import PresenceState
+        from mm_cli.serve import PresenceGate, presence_error
 
         gate = PresenceGate()
         with (
@@ -199,8 +188,8 @@ class TestAC3PresenceGate:
             mock_export.assert_not_called()
 
     def test_mm_not_running(self) -> None:
-        from mm_cli.serve import PresenceGate
         from mm_cli.models import PresenceState
+        from mm_cli.serve import PresenceGate
 
         gate = PresenceGate()
         with (
@@ -211,8 +200,8 @@ class TestAC3PresenceGate:
 
     @patch("mm_cli.serve.activate_moneymoney_and_notify")
     def test_pending_unlock_on_locked_database(self, mock_notify: MagicMock) -> None:
-        from mm_cli.serve import PresenceGate
         from mm_cli.models import PresenceState
+        from mm_cli.serve import PresenceGate
 
         gate = PresenceGate()
         assert gate.handle_locked_database() == PresenceState.PENDING_UNLOCK
@@ -363,10 +352,13 @@ class TestAC6Deploy:
     """AC6: LaunchAgent install/uninstall."""
 
     def test_install_writes_launch_agent_plist(self, tmp_path: Path, serve_token: str) -> None:
-        from mm_cli.serve import LAUNCH_AGENT_PATH, install_launch_agent
+        from mm_cli.serve import install_launch_agent
 
         config_path = tmp_path / "config.toml"
-        config_path.write_text(f'bearer_token = "{serve_token}"\nlan_interface = "127.0.0.1"\n', encoding="utf-8")
+        config_path.write_text(
+            f'bearer_token = "{serve_token}"\nlan_interface = "127.0.0.1"\n',
+            encoding="utf-8",
+        )
         fake_plist = tmp_path / "agent.plist"
 
         with (
@@ -384,7 +376,7 @@ class TestAC6Deploy:
         assert "serve" in payload["ProgramArguments"]
 
     def test_uninstall_removes_plist(self, tmp_path: Path) -> None:
-        from mm_cli.serve import LAUNCH_AGENT_PATH, uninstall_launch_agent
+        from mm_cli.serve import uninstall_launch_agent
 
         fake_plist = tmp_path / "agent.plist"
         fake_plist.write_bytes(plistlib.dumps({"Label": "de.sussdorff.mm-serve"}))

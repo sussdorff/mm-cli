@@ -5,7 +5,7 @@ import io
 import json
 import sys
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from rich.console import Console
@@ -24,6 +24,7 @@ from mm_cli.models import (
     Transaction,
 )
 from mm_cli.rules import RuleSuggestion
+
 
 def _make_consoles(*, no_color: bool) -> tuple[Console, Console]:
     if no_color:
@@ -45,7 +46,7 @@ def configure_output(no_color: bool = False) -> None:
     console, err_console = _make_consoles(no_color=disable_color)
 
 
-class OutputFormat(str, Enum):
+class OutputFormat(StrEnum):
     """Supported output formats."""
 
     TABLE = "table"
