@@ -452,7 +452,8 @@ def run_server(
             mask_sensitive=mask_sensitive,
         )
     bind_host = host or resolve_lan_interface(config)
-    if bind_host in ("0.0.0.0", "::", "[::]"):
+    # B104 false positive: this guard REJECTS wildcard binds, it does not bind to them.
+    if bind_host in ("0.0.0.0", "::", "[::]"):  # nosec B104
         raise ValueError("mm serve must bind to a specific LAN interface, not a wildcard address")
     bind_port = port if port is not None else config.serve_port
     mcp = create_mcp_server(

@@ -323,6 +323,28 @@ class TestAC5AuthAndBind:
 
         assert asyncio.run(_call_with_api_key()) >= 1
 
+    def test_server_rejects_invalid_token(self, running_server) -> None:
+        url, _token, _server = running_server
+
+        async def _post_with_wrong_token() -> int:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url,
+                    headers={
+                        "Authorization": "Bearer "
+                        + "wrong-token-0000000000000000000000000000000000000000000000000000"
+                    },
+                    json={
+                        "jsonrpc": "2.0",
+                        "method": "initialize",
+                        "id": 1,
+                        "params": {},
+                    },
+                )
+                return response.status_code
+
+        assert asyncio.run(_post_with_wrong_token()) == 401
+
     def test_lan_bind_not_wildcard(self, serve_config: Path) -> None:
         from mm_cli.serve import create_mcp_server
 
