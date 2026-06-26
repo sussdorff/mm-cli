@@ -202,6 +202,76 @@ mm transfer -f Girokonto -t "Max Mustermann" -i DE89370400440532013000 -a 100.00
 
 Use `--dry-run` to preview without executing, `--confirm` to skip interactive confirmation, and `--outbox` to queue the transfer without opening the UI.
 
+### Expose MoneyMoney as an MCP server
+
+`mm serve` starts a Streamable-HTTP [MCP](https://modelcontextprotocol.io/) server that exposes your MoneyMoney data to AI assistants and other MCP clients over your local network:
+
+```bash
+mm serve
+```
+
+On first run a bearer token is auto-generated and saved to your config. The server binds to your primary LAN interface only — never to `0.0.0.0`. All requests must supply the token:
+
+```
+Authorization: Bearer <token>
+# or
+X-Api-Key: <token>
+```
+
+**Available MCP tools**
+
+| Tool | Description |
+|---|---|
+| `list_accounts` | All accounts with balances and UUIDs |
+| `list_transactions` | Transactions with date/category/account filters |
+| `list_categories` | Full category hierarchy |
+| `category_usage` | Categories ranked by transaction count |
+| `list_portfolio` | Securities holdings and allocation |
+| `create_transfer` | Queue a SEPA transfer (outbox-only) |
+| `set_transaction_category` | Re-categorize a transaction |
+| `set_transaction_checkmark` | Mark a transaction checked/unchecked |
+| `set_transaction_comment` | Attach a comment to a transaction |
+
+**Presence gating** — if MoneyMoney is not running or the screen is locked, all tools return a structured state (`mm_not_running`, `screen_locked`, `pending_unlock`) instead of an error.
+
+**Sensitive data masking** — pass `--mask-sensitive` to redact IBANs and account numbers in read output while keeping UUIDs intact:
+
+```bash
+mm serve --mask-sensitive
+```
+
+**Custom host and port**
+
+```bash
+mm serve --host 192.168.1.10 --port 9000
+```
+
+**Auto-start with LaunchAgent**
+
+Install a LaunchAgent so `mm serve` starts automatically when you log in to a GUI session:
+
+```bash
+mm serve --install    # install and enable
+mm serve --uninstall  # remove
+```
+
+Logs are written to `~/Library/Logs/mm-serve.log` and `~/Library/Logs/mm-serve.err.log`.
+
+**MCP client configuration** (Claude Desktop / Cursor / VS Code example):
+
+```json
+{
+  "mcpServers": {
+    "moneymoney": {
+      "url": "http://192.168.1.10:8765/mcp",
+      "headers": { "X-Api-Key": "<your-token>" }
+    }
+  }
+}
+```
+
+The bearer token is shown once on first start and stored in `~/.config/mm-cli/config.toml`.
+
 ### Manage categories
 
 View all categories with their hierarchy and existing rules:
@@ -254,6 +324,9 @@ mm analyze spending --format json | jq '.[] | select(.budget != null)'
 | `MoneyMoney is locked` | Unlock MoneyMoney with your password/Touch ID. |
 | `Not authorized to send Apple events to MoneyMoney` | Approve the Automation prompt or enable it under *System Settings → Privacy & Security → Automation → Terminal/iTerm → MoneyMoney*. |
 | `mm: command not found` after install | Add `$(uv tool dir --bin)` to your `PATH`. |
+| `mm serve` returns `screen_locked` | Unlock your macOS session; `mm serve` gates all tools while the screen is locked. |
+| `mm serve` returns 401 | Check that your MCP client sends the correct bearer token from `~/.config/mm-cli/config.toml`. |
+| `mm serve` fails to start (no LAN interface) | Run `mm init` first, or pass `--host <IP>` explicitly. |
 
 ## Development
 
@@ -299,9 +372,13 @@ PyPI Trusted Publishing is configured with:
 
 ## Integrations
 
+### Built-in MCP server (`mm serve`)
+
+`mm-cli` ships its own MCP server — no extra package needed. Run `mm serve` (or install it as a LaunchAgent with `mm serve --install`) and point your AI assistant at the local endpoint. See [Expose MoneyMoney as an MCP server](#expose-moneymoney-as-an-mcp-server) above for full details.
+
 ### [moneymoney-mcp](https://github.com/andre68723/moneymoney-mcp)
 
-[moneymoney-mcp](https://github.com/andre68723/moneymoney-mcp) is an MCP server that exposes MoneyMoney to AI assistants (Cursor, Claude Desktop, VS Code, and other MCP hosts). It builds on **`moneymoney-cli`** as the backend — the same `mm` commands and config you use in the terminal, callable from your agent.
+[moneymoney-mcp](https://github.com/andre68723/moneymoney-mcp) is an alternative MCP server that exposes MoneyMoney to AI assistants (Cursor, Claude Desktop, VS Code, and other MCP hosts). It builds on **`moneymoney-cli`** as the backend — the same `mm` commands and config you use in the terminal, callable from your agent.
 
 Typical setup:
 

@@ -3,7 +3,19 @@
 
 ## [Unreleased]
 
+### Added
 
+- **`mm serve`**: New subcommand that exposes MoneyMoney as a Streamable-HTTP MCP server,
+  making all read and write tools available to AI assistants and other MCP clients over the local network.
+  - Binds to a specific LAN interface (never a wildcard address) for network isolation
+  - Bearer-token authentication auto-generated on first run and stored in config; rejects invalid tokens with 401
+  - Supports `Authorization: Bearer <token>` and `X-Api-Key: <token>` headers
+  - Presence gating: returns `screen_locked`, `pending_unlock`, or `mm_not_running` states before executing tools
+  - Read tools (`list_accounts`, `list_transactions`, `list_categories`, `category_usage`, `list_portfolio`) return structured data via direct import with account UUID handles
+  - Write tools: transfers restricted to outbox-only mode; metadata writes (category, checkmark, comment) operate directly; transfer source resolved by account UUID
+  - `--mask-sensitive` flag redacts IBANs and account numbers in read output while preserving UUIDs (default: off)
+  - `--install` / `--uninstall` manage a LaunchAgent plist (`de.sussdorff.mm-serve`) for automatic startup in GUI sessions
+  - Logs written to `~/Library/Logs/mm-serve.log` and `~/Library/Logs/mm-serve.err.log` when running as LaunchAgent
 
 ### Changed
 
