@@ -247,6 +247,10 @@ def transactions(
         OutputFormat,
         typer.Option("--format", help="Output format"),
     ] = OutputFormat.TABLE,
+    fields: Annotated[
+        str | None,
+        typer.Option("--fields", help="Comma-separated field names for JSON output"),
+    ] = None,
 ) -> None:
     """List transactions with optional filtering.
 
@@ -334,7 +338,8 @@ def transactions(
         elif reverse:
             txs.reverse()
 
-        output_transactions(txs, format)
+        field_list = [f.strip() for f in fields.split(",")] if fields else None
+        output_transactions(txs, format, fields=field_list)
 
     except Exception as e:
         handle_applescript_error(e)

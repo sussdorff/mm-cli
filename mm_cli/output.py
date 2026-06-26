@@ -274,15 +274,20 @@ def output_categories(
 def output_transactions(
     transactions: list[Transaction],
     format: OutputFormat = OutputFormat.TABLE,
+    fields: list[str] | None = None,
 ) -> None:
     """Output transactions in the specified format.
 
     Args:
         transactions: List of transactions to output.
         format: Output format.
+        fields: Optional list of field names to include in JSON output.
     """
     if format == OutputFormat.JSON:
         data = [tx.to_dict() for tx in transactions]
+        if fields:
+            field_set = set(fields)
+            data = [{k: v for k, v in row.items() if k in field_set} for row in data]
         print(json.dumps(data, indent=2, cls=DecimalEncoder))
         return
 
