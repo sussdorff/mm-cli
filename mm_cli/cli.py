@@ -100,8 +100,15 @@ def main(
             is_eager=True,
         ),
     ] = False,
+    no_color: Annotated[
+        bool,
+        typer.Option("--no-color", help="Disable ANSI color codes", is_eager=True),
+    ] = False,
 ) -> None:
     """CLI for MoneyMoney macOS app."""
+    from mm_cli.output import configure_output
+
+    configure_output(no_color=no_color)
 
 
 def handle_applescript_error(e: Exception) -> None:
@@ -130,9 +137,19 @@ def parse_date(date_str: str) -> date:
 
 
 @app.command()
-def version() -> None:
+def version(
+    format: Annotated[
+        str | None,
+        typer.Option("--format", "-f", help="Output format: json"),
+    ] = None,
+) -> None:
     """Show version information."""
-    typer.echo(f"mm-cli version {__version__}")
+    if format == "json":
+        import json as _json
+
+        print(_json.dumps({"version": __version__}))
+    else:
+        typer.echo(f"mm-cli version {__version__}")
 
 
 @app.command()
@@ -487,9 +504,7 @@ def export_file(
                 shutil.copy(temp_path, output_path)
                 print_success(f"Exported to: {output_path}")
             else:
-                # Just print the temp file path
-                print_info(f"Exported to temporary file: {temp_path}")
-                print_info("Use --output/-o to save to a specific location.")
+                print(temp_path)
 
     except Exception as e:
         handle_applescript_error(e)

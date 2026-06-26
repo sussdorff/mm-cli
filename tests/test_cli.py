@@ -1,5 +1,6 @@
 """Tests for mm_cli.cli module."""
 
+import re
 import tomllib
 from datetime import date
 from decimal import Decimal
@@ -32,6 +33,13 @@ class TestVersionCommand:
         result = runner.invoke(app, ["version"])
         assert result.exit_code == 0
         assert f"mm-cli version {_PYPROJECT_VERSION}" in result.output
+
+    def test_version_json_format(self) -> None:
+        """Test version command with JSON output."""
+        result = runner.invoke(app, ["version", "--format", "json"])
+        assert result.exit_code == 0
+        assert result.stdout.strip() == f'{{"version": "{_PYPROJECT_VERSION}"}}'
+        assert result.stderr == ""
 
 
 class TestAccountsCommand:
@@ -1884,8 +1892,8 @@ class TestExportCommand:
         result = runner.invoke(app, ["export", "--format", "sta"])
 
         assert result.exit_code == 0
-        assert "Exported to temporary file" in result.output
-        assert "/tmp/export.sta" in result.output
+        assert result.stdout.strip() == "/tmp/export.sta"
+        assert result.stderr == ""
 
     @patch("mm_cli.cli.export_transactions")
     def test_export_csv_format(self, mock_export: MagicMock) -> None:
@@ -1895,7 +1903,7 @@ class TestExportCommand:
         result = runner.invoke(app, ["export", "--format", "csv"])
 
         assert result.exit_code == 0
-        assert "/tmp/export.csv" in result.output
+        assert result.stdout.strip() == "/tmp/export.csv"
 
     @patch("mm_cli.cli.export_transactions")
     def test_export_ofx_format(self, mock_export: MagicMock) -> None:
@@ -1905,7 +1913,7 @@ class TestExportCommand:
         result = runner.invoke(app, ["export", "--format", "ofx"])
 
         assert result.exit_code == 0
-        assert "/tmp/export.ofx" in result.output
+        assert result.stdout.strip() == "/tmp/export.ofx"
 
     @patch("mm_cli.cli.export_transactions")
     def test_export_with_date_range(self, mock_export: MagicMock) -> None:
@@ -2144,6 +2152,34 @@ class TestSuggestRulesCommand:
 
         assert result.exit_code == 0
         assert '"pattern"' in result.output
+
+
+class TestNoColor:
+    """Tests for --no-color global flag."""
+
+    _ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
+
+    @patch("mm_cli.cli.export_accounts")
+    def test_no_color_flag_suppresses_ansi(self, mock_export: MagicMock, sample_accounts) -> None:
+        """Test --no-color removes ANSI escape codes from output."""
+        mock_export.return_value = sample_accounts
+
+        result = runner.invoke(app, ["--no-color", "accounts"])
+
+        assert result.exit_code == 0
+        assert "Girokonto" in result.output
+        assert not self._ANSI_ESCAPE.search(result.output)
+
+    @patch("mm_cli.cli.export_accounts")
+    def test_non_tty_suppresses_ansi(self, mock_export: MagicMock, sample_accounts) -> None:
+        """Test piped (non-TTY) output contains no ANSI escape codes."""
+        mock_export.return_value = sample_accounts
+
+        result = runner.invoke(app, ["accounts"], env={"TERM": "dumb"})
+
+        assert result.exit_code == 0
+        assert "Girokonto" in result.output
+        assert not self._ANSI_ESCAPE.search(result.output)
 
 
 class TestEdgeCases:
