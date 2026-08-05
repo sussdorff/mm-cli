@@ -27,6 +27,11 @@ uv.lock
 !.claude/skills/
 !.claude/skills/**
 
+# Cursor runtime state is ignored; Library-managed Skill bridges are shared.
+.cursor/*
+!.cursor/skills/
+!.cursor/skills/**
+
 # Dolt database files (added by bd init)
 .dolt/
 *.db

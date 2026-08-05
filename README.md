@@ -73,6 +73,9 @@ uv tool install --editable .
 
 Re-run with `--force` after changing `pyproject.toml`.
 
+All commands are available via `mm`. Run `mm --help` for a full list, or
+`mm <command> --help` for details on any command.
+
 ### Development Workspace
 
 The repository registers `cognovis-library-core:python-cli` in
@@ -86,8 +89,6 @@ Inspect the desired state with:
 ```text
 library workspace status --all --scope project --json
 ```
-
-All commands are available via `mm`. Run `mm --help` for a full list, or `mm <command> --help` for details on any command.
 
 ## Configuration
 
