@@ -1,0 +1,210 @@
+schema_version: 2
+migration:
+  prune_ack_required: false
+requested_roots:
+- id: workspace:https://github.com/cognovis/library-core#python-cli
+  type: workspace
+  name: python-cli
+  scope: project
+  catalog_identity: https://github.com/cognovis/library-core
+  catalog_name: cognovis-library-core
+  requested_ref: cognovis-library-core:python-cli
+  resolved_version: 0.1.0
+  definition_commit: 2cdbfe648cbcc774daa30c88e03779afbb4abcfa
+  roots:
+  - skill:python-dev
+  - skill:python-test
+receipts:
+- name: python-cli-patterns
+  type: standard
+  marketplace: unknown
+  source: https://github.com/cognovis/library-core/tree/main/standards/python-cli-patterns/
+  source_commit: d4a9c64112ee94fcf72312733815a4dcbff63b18
+  cache_path: /Users/malte/.local/share/library/standards/unknown/python-cli-patterns@d4a9c64112ee94/
+  install_target: .agents/standards/python-cli-patterns/
+  install_timestamp: '2026-08-05T17:55:24Z'
+  checksum_sha256: 06abca3e8453a68114f73dd6fa927705dc1d76d2544eac5d527c9d245332ebc8
+  checksum_type: directory
+  content_sha256: 06abca3e8453a68114f73dd6fa927705dc1d76d2544eac5d527c9d245332ebc8
+  install_mode: vendor
+  license: unknown
+  bridge_symlinks: []
+  scope: project
+  catalog_identity: https://github.com/cognovis/library
+  id: standard:python-cli-patterns
+  resolved_version: legacy
+  verified: true
+  adopted: false
+  prune_blocked_reason: null
+  targets:
+  - path: .agents/standards/python-cli-patterns
+    kind: directory
+  - path: .agents/standards/python-cli-patterns/config-resolution.md
+    kind: file
+    content_sha256: 2bfe5d6742f3663f8c36c72c33a74d0ff61f149a443d669aa3261b4db2d40468
+  - path: .agents/standards/python-cli-patterns/distribution-packaging.md
+    kind: file
+    content_sha256: cf78554b27bca727952c50419c96034fa89d691766b4c3cd54131bf723168842
+  - path: .agents/standards/python-cli-patterns/project-scaffold.md
+    kind: file
+    content_sha256: 5bed68ef077430667e7c774823ea04c957253582843ceda622f8f0bebb3d8780
+  - path: .agents/standards/python-cli-patterns/python-cli-patterns.md
+    kind: file
+    content_sha256: 324162ca2ddf5974b9521b123ab0c2de63f3d20c15502fa8a955e136bb50a5ac
+  - path: .agents/standards/python-cli-patterns/update-and-ux.md
+    kind: file
+    content_sha256: a67963b3df0fbda9ec936930a7b2f1718a552b5ec71acf8ef193fec174e88fa1
+  - path: .agents/standards/python-cli-patterns/versioning-release.md
+    kind: file
+    content_sha256: 2d2237cfda19608d68d64942ded19c64f2b4c3cbf00961917893b3b1775a51b2
+  owners_cache:
+  - workspace:https://github.com/cognovis/library-core#python-cli
+- name: python-dev
+  type: skill
+  marketplace: unknown
+  source: https://github.com/cognovis/library-core/blob/main/skills/python-dev/SKILL.md
+  source_commit: d4a9c64112ee94fcf72312733815a4dcbff63b18
+  cache_path: /Users/malte/.local/share/library/skills/unknown/python-dev@d4a9c64112ee94/
+  install_target: .agents/skills/python-dev/
+  install_timestamp: '2026-08-05T17:55:25Z'
+  checksum_sha256: 4f640d581ea089458c5549f742e00280b7a0e54fa0dd841f691b86fad6faecdb
+  checksum_type: directory
+  content_sha256: 4f640d581ea089458c5549f742e00280b7a0e54fa0dd841f691b86fad6faecdb
+  install_mode: vendor
+  license: unknown
+  bridge_symlinks:
+  - .claude/skills/python-dev -> ../../.agents/skills/python-dev
+  - .cursor/skills/python-dev -> ../../.agents/skills/python-dev
+  scope: project
+  version: 1.0.0
+  catalog_identity: https://github.com/cognovis/library
+  id: skill:python-dev
+  resolved_version: 1.0.0
+  verified: true
+  adopted: false
+  prune_blocked_reason: null
+  targets:
+  - path: .agents/skills/python-dev
+    kind: directory
+  - path: .agents/skills/python-dev/SKILL.md
+    kind: file
+    content_sha256: b070abea29b3a618659476d92d24f34c3447f7d5873f5f6acdcc8ac6f5471c17
+  - path: .claude/skills/python-dev
+    kind: symlink
+    link_target: ../../.agents/skills/python-dev
+  - path: .cursor/skills/python-dev
+    kind: symlink
+    link_target: ../../.agents/skills/python-dev
+  owners_cache:
+  - workspace:https://github.com/cognovis/library-core#python-cli
+- name: python-test
+  type: skill
+  marketplace: unknown
+  source: https://github.com/cognovis/library-core/blob/main/skills/python-test/SKILL.md
+  source_commit: d4a9c64112ee94fcf72312733815a4dcbff63b18
+  cache_path: /Users/malte/.local/share/library/skills/unknown/python-test@d4a9c64112ee94/
+  install_target: .agents/skills/python-test/
+  install_timestamp: '2026-08-05T17:55:26Z'
+  checksum_sha256: 9e76a354484dd24dbd6dcf8586ded2afc125ded34eedbb3dac51c0dd6f0d02bf
+  checksum_type: directory
+  content_sha256: 9e76a354484dd24dbd6dcf8586ded2afc125ded34eedbb3dac51c0dd6f0d02bf
+  install_mode: vendor
+  license: unknown
+  bridge_symlinks:
+  - .claude/skills/python-test -> ../../.agents/skills/python-test
+  - .cursor/skills/python-test -> ../../.agents/skills/python-test
+  scope: project
+  version: 1.0.0
+  catalog_identity: https://github.com/cognovis/library
+  id: skill:python-test
+  resolved_version: 1.0.0
+  verified: true
+  adopted: false
+  prune_blocked_reason: null
+  targets:
+  - path: .agents/skills/python-test
+    kind: directory
+  - path: .agents/skills/python-test/SKILL.md
+    kind: file
+    content_sha256: 9dc434c03cfc8dfcf82c4f00bcd03e62bc3d5f54add002c6871348f4cc3fe026
+  - path: .agents/skills/python-test/references
+    kind: directory
+  - path: .agents/skills/python-test/references/test-fixtures.md
+    kind: file
+    content_sha256: c13e321f06e9e4724aeadf8ab3e82477c4cbaf0954c540f8812182f1d9d86363
+  - path: .claude/skills/python-test
+    kind: symlink
+    link_target: ../../.agents/skills/python-test
+  - path: .cursor/skills/python-test
+    kind: symlink
+    link_target: ../../.agents/skills/python-test
+  owners_cache:
+  - workspace:https://github.com/cognovis/library-core#python-cli
+prerequisites:
+- id: standard:english-only
+  kind: global-root
+  scope: global
+  status: ready
+  requested_by:
+  - workspace:https://github.com/cognovis/library-core#python-cli
+- id: standard:no-emoji
+  kind: global-root
+  scope: global
+  status: ready
+  requested_by:
+  - workspace:https://github.com/cognovis/library-core#python-cli
+installed:
+- name: python-cli-patterns
+  type: standard
+  marketplace: unknown
+  source: https://github.com/cognovis/library-core/tree/main/standards/python-cli-patterns/
+  source_commit: d4a9c64112ee94fcf72312733815a4dcbff63b18
+  cache_path: /Users/malte/.local/share/library/standards/unknown/python-cli-patterns@d4a9c64112ee94/
+  install_target: .agents/standards/python-cli-patterns/
+  install_timestamp: '2026-08-05T17:55:24Z'
+  checksum_sha256: 06abca3e8453a68114f73dd6fa927705dc1d76d2544eac5d527c9d245332ebc8
+  checksum_type: directory
+  content_sha256: 06abca3e8453a68114f73dd6fa927705dc1d76d2544eac5d527c9d245332ebc8
+  install_mode: vendor
+  license: unknown
+  bridge_symlinks: []
+  scope: project
+  catalog_identity: https://github.com/cognovis/library
+- name: python-dev
+  type: skill
+  marketplace: unknown
+  source: https://github.com/cognovis/library-core/blob/main/skills/python-dev/SKILL.md
+  source_commit: d4a9c64112ee94fcf72312733815a4dcbff63b18
+  cache_path: /Users/malte/.local/share/library/skills/unknown/python-dev@d4a9c64112ee94/
+  install_target: .agents/skills/python-dev/
+  install_timestamp: '2026-08-05T17:55:25Z'
+  checksum_sha256: 4f640d581ea089458c5549f742e00280b7a0e54fa0dd841f691b86fad6faecdb
+  checksum_type: directory
+  content_sha256: 4f640d581ea089458c5549f742e00280b7a0e54fa0dd841f691b86fad6faecdb
+  install_mode: vendor
+  license: unknown
+  bridge_symlinks:
+  - .claude/skills/python-dev -> ../../.agents/skills/python-dev
+  - .cursor/skills/python-dev -> ../../.agents/skills/python-dev
+  scope: project
+  version: 1.0.0
+  catalog_identity: https://github.com/cognovis/library
+- name: python-test
+  type: skill
+  marketplace: unknown
+  source: https://github.com/cognovis/library-core/blob/main/skills/python-test/SKILL.md
+  source_commit: d4a9c64112ee94fcf72312733815a4dcbff63b18
+  cache_path: /Users/malte/.local/share/library/skills/unknown/python-test@d4a9c64112ee94/
+  install_target: .agents/skills/python-test/
+  install_timestamp: '2026-08-05T17:55:26Z'
+  checksum_sha256: 9e76a354484dd24dbd6dcf8586ded2afc125ded34eedbb3dac51c0dd6f0d02bf
+  checksum_type: directory
+  content_sha256: 9e76a354484dd24dbd6dcf8586ded2afc125ded34eedbb3dac51c0dd6f0d02bf
+  install_mode: vendor
+  license: unknown
+  bridge_symlinks:
+  - .claude/skills/python-test -> ../../.agents/skills/python-test
+  - .cursor/skills/python-test -> ../../.agents/skills/python-test
+  scope: project
+  version: 1.0.0
+  catalog_identity: https://github.com/cognovis/library

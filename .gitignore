@@ -22,8 +22,15 @@ htmlcov/
 # uv
 uv.lock
 
-# Claude Code
-.claude
+# Claude Code runtime state is ignored; Library-managed Skill bridges are shared.
+.claude/*
+!.claude/skills/
+!.claude/skills/**
+
+# Cursor runtime state is ignored; Library-managed Skill bridges are shared.
+.cursor/*
+!.cursor/skills/
+!.cursor/skills/**
 
 # Dolt database files (added by bd init)
 .dolt/
@@ -39,3 +46,4 @@ uv.lock
 # Session-close runner artifacts
 .session-close-state.json
 .session-close.lock
+.library.lock.workspace-lock
