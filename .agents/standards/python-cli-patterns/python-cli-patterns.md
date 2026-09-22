@@ -15,6 +15,7 @@ description: Python CLI tool conventions — project structure, versioning, PyPI
 |------|-------|
 | [project-scaffold.md](project-scaffold.md) | Directory layout and `pyproject.toml` template |
 | [versioning-release.md](versioning-release.md) | CalVer, tag-driven GitHub Actions release, Trusted Publishing |
+| [forgejo-registry.md](forgejo-registry.md) | Private distribution via the Forgejo PyPI registry — publish with twine, install/upgrade on target machines |
 | [config-resolution.md](config-resolution.md) | Platform config paths, `key_command`, lazy click context |
 | [distribution-packaging.md](distribution-packaging.md) | Hatchling `force-include`, package vs import names, `install-skill` |
 | [update-and-ux.md](update-and-ux.md) | Rich output layer, Click/Rich boundary, PyPI version self-check, first-run wizard, output file conventions |
@@ -24,7 +25,9 @@ description: Python CLI tool conventions — project structure, versioning, PyPI
 A Python tool is a CLI under this standard when:
 
 - It is invoked by users from a shell (entry point in `[project.scripts]`)
-- It is distributed via PyPI and installed with `uv tool install <name>`
+- It is distributed via PyPI (public tools) or the Forgejo registry (private
+  tools, see [forgejo-registry.md](forgejo-registry.md)) and installed with
+  `uv tool install <name>`
 - It may require runtime configuration (API keys, server URLs)
 
 For internal libraries without a CLI entry point, only `project-scaffold.md`

@@ -60,7 +60,7 @@ project wants a Rich-rendered `--help`; it does not move the boundary.
 ### Markup and Emoji
 
 Rich console markup (`[bold]`, `[red]`, `[dim]`) is allowed. Rich's `:shortcode:`
-emoji markup and literal emoji are not — the `no-emoji` standard covers CLI
+emoji markup and literal emoji are not — the always-on no-emoji rule covers CLI
 output like any other string. Carry status with style, plain words, or ASCII
 symbols (`->`, `*`, `[ok]`).
 

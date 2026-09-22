@@ -73,7 +73,12 @@ For PyPI uploads, use Trusted Publishing instead of API tokens:
 2. Add GitHub publisher: owner, repo, workflow filename
 3. In the workflow: `uv publish --trusted-publishing always` — no secrets needed.
 
-Do NOT use `UV_PUBLISH_TOKEN`, `TWINE_PASSWORD`, or long-lived PyPI API tokens.
+For public PyPI uploads, do NOT use `UV_PUBLISH_TOKEN`, `TWINE_PASSWORD`, or
+long-lived PyPI API tokens.
+
+Private tools do not go to public PyPI at all — they publish to the Forgejo
+registry with a package-scoped token and twine. See
+[forgejo-registry.md](forgejo-registry.md).
 
 **Why:** OIDC tokens are short-lived, scoped to the specific workflow run, and
 cannot leak or be reused.
