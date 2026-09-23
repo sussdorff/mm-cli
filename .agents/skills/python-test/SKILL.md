@@ -1,14 +1,8 @@
 ---
 name: python-test
 version: 1.0.0
-description: >-
-  Test Python CLI tools — pytest layout, click.testing.CliRunner, argparse
-  invocation, fixtures, coverage. Use when writing Python tests, running
-  pytest, mocking subprocess for key_command, testing a CLI entry point,
-  or any Python test context. Triggers on pytest, uv run pytest, test python,
-  test cli, CliRunner, conftest, test fixture python, click testing, capsys,
-  monkeypatch.
-requires_standards: [python-cli-patterns, english-only, no-emoji]
+description: Write or troubleshoot Python CLI tests, including fixtures, mocks and subprocess boundaries.
+requires_standards: [python-cli-patterns]
 compatibility: {}
 metadata: {}
 ---
@@ -83,7 +77,7 @@ test-file comment so a future reader does not "fix" it back to in-process.
 - Run bare `pytest` — always `uv run pytest`.
 - Hit the real network or real filesystem (`~/.config`) in tests — use fixtures.
 - Skip the `key_command` mock — tests must not invoke real `op read` or `pass` commands.
-- Write tests in any language other than English (`english-only` standard applies).
+- Write tests in any language other than English (the always-on English-only rule applies).
 
 ## Resources
 
