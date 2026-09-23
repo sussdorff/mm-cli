@@ -1,13 +1,7 @@
 ---
 name: python-test
 version: 1.0.0
-description: >-
-  Test Python CLI tools — pytest layout, click.testing.CliRunner, argparse
-  invocation, fixtures, coverage. Use when writing Python tests, running
-  pytest, mocking subprocess for key_command, testing a CLI entry point,
-  or any Python test context. Triggers on pytest, uv run pytest, test python,
-  test cli, CliRunner, conftest, test fixture python, click testing, capsys,
-  monkeypatch.
+description: Write or troubleshoot Python CLI tests, including fixtures, mocks and subprocess boundaries.
 requires_standards: [python-cli-patterns]
 compatibility: {}
 metadata: {}

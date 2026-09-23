@@ -11,8 +11,10 @@ needed on the target machine.
 - The tool must be installable and upgradable on machines that have no access
   to the source repository (servers, CI, third-party machines).
 
-Public tools keep the PyPI + Trusted Publishing flow from
+Public tools keep the generic PyPI + Trusted Publishing flow from
 `versioning-release.md` — this file replaces that flow for private tools.
+Independent Cognovis operator CLIs use `cli-versioning` for their version,
+scoped tag, and workflow; this page supplies only their private-index mechanics.
 
 ## Publish
 
