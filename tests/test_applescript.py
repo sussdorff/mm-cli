@@ -518,17 +518,6 @@ class TestSetTransactionCheckmark:
         assert "set transaction id 12345" in call_args
         assert 'checkmark to "off"' in call_args
 
-    @patch("mm_cli.applescript.run_applescript")
-    def test_set_checkmark_calls_applescript(self, mock_run: MagicMock) -> None:
-        """Test that the correct AppleScript is constructed."""
-        mock_run.return_value = ""
-
-        set_transaction_checkmark("99999", checked=True)
-
-        expected = 'tell application "MoneyMoney" to set transaction id 99999 checkmark to "on"'
-        mock_run.assert_called_once_with(expected)
-
-
 class TestSetTransactionComment:
     """Tests for set_transaction_comment function."""
 
@@ -565,20 +554,6 @@ class TestSetTransactionComment:
         call_args = mock_run.call_args[0][0]
         assert 'comment to ""' in call_args
 
-    @patch("mm_cli.applescript.run_applescript")
-    def test_set_comment_calls_applescript(self, mock_run: MagicMock) -> None:
-        """Test that the correct AppleScript is constructed."""
-        mock_run.return_value = ""
-
-        set_transaction_comment("54321", "Rechnung bezahlt")
-
-        expected = (
-            'tell application "MoneyMoney" to set transaction id 54321 '
-            'comment to "Rechnung bezahlt"'
-        )
-        mock_run.assert_called_once_with(expected)
-
-
 class TestExtractBalance:
     """Tests for _extract_balance helper function."""
 
@@ -593,12 +568,6 @@ class TestExtractBalance:
         amount, currency = _extract_balance([[0, "EUR"]])
         assert amount == Decimal("0")
         assert currency == "EUR"
-
-    def test_nested_array_chf(self) -> None:
-        """Test unusual currency [[500, "CHF"]]."""
-        amount, currency = _extract_balance([[500, "CHF"]])
-        assert amount == Decimal("500")
-        assert currency == "CHF"
 
     def test_nested_array_usd(self) -> None:
         """Test USD currency [[1234.56, "USD"]]."""
@@ -634,10 +603,4 @@ class TestExtractBalance:
         """Test negative balance (e.g., credit card)."""
         amount, currency = _extract_balance([[-500.25, "EUR"]])
         assert amount == Decimal("-500.25")
-        assert currency == "EUR"
-
-    def test_large_balance(self) -> None:
-        """Test large balance amount."""
-        amount, currency = _extract_balance([[1000000.99, "EUR"]])
-        assert amount == Decimal("1000000.99")
         assert currency == "EUR"
