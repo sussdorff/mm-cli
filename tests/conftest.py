@@ -1,7 +1,9 @@
 """Pytest fixtures for mm-cli tests."""
 
+import os
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -14,6 +16,23 @@ from mm_cli.models import (
     Security,
     Transaction,
 )
+
+
+@pytest.fixture(autouse=True)
+def _isolated_environment(tmp_path_factory, monkeypatch):
+    """Keep tests independent of the developer's home and Git configuration."""
+    home = tmp_path_factory.mktemp("home")
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(home / ".config"))
+    monkeypatch.setenv("XDG_STATE_HOME", str(home / ".local" / "state"))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(home / ".cache"))
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    # CONFIG_DIR and CONFIG_FILE are resolved at import time, before this fixture runs.
+    config_dir = home / ".config" / "mm-cli"
+    monkeypatch.setattr("mm_cli.config.CONFIG_DIR", config_dir)
+    monkeypatch.setattr("mm_cli.config.CONFIG_FILE", config_dir / "config.toml")
 
 
 @pytest.fixture

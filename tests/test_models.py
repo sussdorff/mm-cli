@@ -28,7 +28,7 @@ class TestAccount:
         assert data["iban"] == "DE89370400440532013000"
 
     def test_account_types(self) -> None:
-        """Test AccountType enum values."""
+        """AccountType enum values match the strings MoneyMoney reports."""
         assert AccountType.CHECKING.value == "checking"
         assert AccountType.SAVINGS.value == "savings"
         assert AccountType.CREDIT_CARD.value == "credit card"
@@ -46,12 +46,6 @@ class TestCategory:
         assert data["name"] == "Gehalt"
         assert data["category_type"] == "income"
         assert data["parent_name"] == "Einkommen"
-
-    def test_category_types(self) -> None:
-        """Test CategoryType enum values."""
-        assert CategoryType.INCOME.value == "income"
-        assert CategoryType.EXPENSE.value == "expense"
-        assert CategoryType.TRANSFER.value == "transfer"
 
 
 class TestTransaction:

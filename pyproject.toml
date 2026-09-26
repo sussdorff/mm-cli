@@ -63,6 +63,7 @@ dev = [
     "git-cliff>=2.12.0",
     "pytest>=8.0.0",
     "pytest-cov>=6.0.0",
+    "pytest-xdist>=3.8",
     "ruff>=0.8.0",
     "bandit>=1.8.0",
 ]
@@ -70,6 +71,7 @@ dev = [
 [tool.ruff]
 target-version = "py312"
 line-length = 100
+extend-exclude = [".agents", ".claude"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "C4"]
@@ -82,4 +84,4 @@ skips = ["B404", "B603", "B607"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v"
+addopts = "-v -n auto"

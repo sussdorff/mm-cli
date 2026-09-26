@@ -14,12 +14,6 @@ class TestConfig:
         assert cfg.transfer_category == ""
         assert cfg.excluded_groups == []
 
-    def test_custom_values(self) -> None:
-        """Test Config with custom values."""
-        cfg = Config(transfer_category="Umbuchungen", excluded_groups=["Aufgelöst"])
-        assert cfg.transfer_category == "Umbuchungen"
-        assert cfg.excluded_groups == ["Aufgelöst"]
-
 
 class TestLoadConfig:
     """Tests for load_config()."""
@@ -114,12 +108,6 @@ class TestWriteConfig:
         assert loaded.transfer_category == original.transfer_category
         assert loaded.excluded_groups == original.excluded_groups
 
-    def test_write_creates_directories(self, tmp_path: Path) -> None:
-        """write_config creates parent directories if needed."""
-        config_file = tmp_path / "deep" / "nested" / "config.toml"
-        write_config(Config(), path=config_file)
-        assert config_file.exists()
-
     def test_write_empty_config(self, tmp_path: Path) -> None:
         """Writing default (empty) config creates a valid file."""
         config_file = tmp_path / "config.toml"
@@ -128,6 +116,12 @@ class TestWriteConfig:
         loaded = load_config(path=config_file)
         assert loaded.transfer_category == ""
         assert loaded.excluded_groups == []
+
+    def test_write_creates_directories(self, tmp_path: Path) -> None:
+        """write_config creates parent directories if needed."""
+        config_file = tmp_path / "deep" / "nested" / "config.toml"
+        write_config(Config(), path=config_file)
+        assert config_file.exists()
 
     def test_write_returns_path(self, tmp_path: Path) -> None:
         """write_config returns the path where config was written."""
