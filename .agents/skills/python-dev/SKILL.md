@@ -9,7 +9,7 @@ description: >-
   context that is not test-focused. Triggers on write python, python tool,
   python cli, build cli, argparse, click, pyproject.toml, uv tool, src layout,
   hatchling, pypi, calver.
-requires_standards: [python-cli-patterns, english-only, no-emoji]
+requires_standards: [python-cli-patterns, db-migrations]
 compatibility: {}
 metadata: {}
 ---
@@ -44,7 +44,10 @@ Do NOT use for test work — that is `python-test`.
    hint. Platform-aware paths only (no hardcoded `~/.config`).
 5. **Distribution.** Hatchling `force-include` for non-Python assets. PyPI
    distribution name may differ from import name; verify name availability
-   before the first `uv build`.
+   before the first `uv build`. Public tools release to PyPI via Trusted
+   Publishing; private tools publish to the Forgejo registry
+   (`python-cli-patterns/forgejo-registry.md`) so target machines install and
+   upgrade with plain `uv tool install` / `uv tool upgrade`.
 6. **No self-update at runtime.** Show a hint and rely on the user running
    `uv tool install <pkg> --force --refresh`.
 
@@ -58,7 +61,10 @@ Do NOT use for test work — that is `python-test`.
 ## Do NOT
 
 - Hand-edit the version in `pyproject.toml` or `__init__.py`.
-- Use API tokens (`UV_PUBLISH_TOKEN`, `TWINE_PASSWORD`) — use Trusted Publishing.
+- Use API tokens (`UV_PUBLISH_TOKEN`, `TWINE_PASSWORD`) against public PyPI —
+  use Trusted Publishing. Exception: private tools publish to the Forgejo
+  registry with a package-scoped token, see
+  `python-cli-patterns/forgejo-registry.md`.
 - Hardcode `~/.config` — use the platform-aware resolver.
 - Auto-open output files — gate behind an explicit `--open` flag.
 - Self-update during execution — show a hint only.
