@@ -28,7 +28,7 @@ class TestAccount:
         assert data["iban"] == "DE89370400440532013000"
 
     def test_account_types(self) -> None:
-        """AccountType values are emitted verbatim as account_type in JSON, CSV and tables."""
+        """AccountType enum values match the strings MoneyMoney reports."""
         assert AccountType.CHECKING.value == "checking"
         assert AccountType.SAVINGS.value == "savings"
         assert AccountType.CREDIT_CARD.value == "credit card"

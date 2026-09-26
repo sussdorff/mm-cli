@@ -60,10 +60,31 @@ class TestLoadConfig:
         assert cfg.transfer_category == ""
         assert cfg.excluded_groups == ["Aufgelöst"]
 
+    def test_empty_config_file(self, tmp_path: Path) -> None:
+        """Empty config file returns defaults."""
+        config_file = tmp_path / "config.toml"
+        config_file.write_text("", encoding="utf-8")
+
+        cfg = load_config(path=config_file)
+        assert cfg.transfer_category == ""
+        assert cfg.excluded_groups == []
+
     def test_malformed_toml(self, tmp_path: Path) -> None:
         """Malformed TOML file returns defaults (no crash)."""
         config_file = tmp_path / "config.toml"
         config_file.write_text("this is not valid toml [[[", encoding="utf-8")
+
+        cfg = load_config(path=config_file)
+        assert cfg.transfer_category == ""
+        assert cfg.excluded_groups == []
+
+    def test_empty_string_values(self, tmp_path: Path) -> None:
+        """Config with empty string values."""
+        config_file = tmp_path / "config.toml"
+        config_file.write_text(
+            'transfer_category = ""\nexcluded_groups = []\n',
+            encoding="utf-8",
+        )
 
         cfg = load_config(path=config_file)
         assert cfg.transfer_category == ""
@@ -86,6 +107,15 @@ class TestWriteConfig:
 
         assert loaded.transfer_category == original.transfer_category
         assert loaded.excluded_groups == original.excluded_groups
+
+    def test_write_empty_config(self, tmp_path: Path) -> None:
+        """Writing default (empty) config creates a valid file."""
+        config_file = tmp_path / "config.toml"
+        write_config(Config(), path=config_file)
+
+        loaded = load_config(path=config_file)
+        assert loaded.transfer_category == ""
+        assert loaded.excluded_groups == []
 
     def test_write_creates_directories(self, tmp_path: Path) -> None:
         """write_config creates parent directories if needed."""
