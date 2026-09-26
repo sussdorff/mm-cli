@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from mm_cli.models import (
     Account,
+    AccountType,
     Category,
     CategoryType,
     CategoryUsage,
@@ -26,6 +27,13 @@ class TestAccount:
         assert data["account_type"] == "checking"
         assert data["iban"] == "DE89370400440532013000"
 
+    def test_account_types(self) -> None:
+        """AccountType values are emitted verbatim as account_type in JSON, CSV and tables."""
+        assert AccountType.CHECKING.value == "checking"
+        assert AccountType.SAVINGS.value == "savings"
+        assert AccountType.CREDIT_CARD.value == "credit card"
+
+
 class TestCategory:
     """Tests for Category model."""
 
@@ -38,6 +46,7 @@ class TestCategory:
         assert data["name"] == "Gehalt"
         assert data["category_type"] == "income"
         assert data["parent_name"] == "Einkommen"
+
 
 class TestTransaction:
     """Tests for Transaction model."""

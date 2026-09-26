@@ -14,6 +14,7 @@ class TestConfig:
         assert cfg.transfer_category == ""
         assert cfg.excluded_groups == []
 
+
 class TestLoadConfig:
     """Tests for load_config()."""
 
@@ -67,6 +68,7 @@ class TestLoadConfig:
         cfg = load_config(path=config_file)
         assert cfg.transfer_category == ""
         assert cfg.excluded_groups == []
+
 
 class TestWriteConfig:
     """Tests for write_config()."""

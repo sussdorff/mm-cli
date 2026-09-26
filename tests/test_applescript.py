@@ -502,9 +502,9 @@ class TestSetTransactionCheckmark:
         result = set_transaction_checkmark("12345", checked=True)
 
         assert result is True
-        call_args = mock_run.call_args[0][0]
-        assert "set transaction id 12345" in call_args
-        assert 'checkmark to "on"' in call_args
+        mock_run.assert_called_once_with(
+            'tell application "MoneyMoney" to set transaction id 12345 checkmark to "on"'
+        )
 
     @patch("mm_cli.applescript.run_applescript")
     def test_set_checkmark_off(self, mock_run: MagicMock) -> None:
@@ -518,6 +518,7 @@ class TestSetTransactionCheckmark:
         assert "set transaction id 12345" in call_args
         assert 'checkmark to "off"' in call_args
 
+
 class TestSetTransactionComment:
     """Tests for set_transaction_comment function."""
 
@@ -529,9 +530,9 @@ class TestSetTransactionComment:
         result = set_transaction_comment("12345", "test comment")
 
         assert result is True
-        call_args = mock_run.call_args[0][0]
-        assert "set transaction id 12345" in call_args
-        assert 'comment to "test comment"' in call_args
+        mock_run.assert_called_once_with(
+            'tell application "MoneyMoney" to set transaction id 12345 comment to "test comment"'
+        )
 
     @patch("mm_cli.applescript.run_applescript")
     def test_set_comment_with_quotes(self, mock_run: MagicMock) -> None:
@@ -553,6 +554,7 @@ class TestSetTransactionComment:
         assert result is True
         call_args = mock_run.call_args[0][0]
         assert 'comment to ""' in call_args
+
 
 class TestExtractBalance:
     """Tests for _extract_balance helper function."""

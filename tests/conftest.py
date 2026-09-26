@@ -29,6 +29,10 @@ def _isolated_environment(tmp_path_factory, monkeypatch):
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    # CONFIG_DIR and CONFIG_FILE are resolved at import time, before this fixture runs.
+    config_dir = home / ".config" / "mm-cli"
+    monkeypatch.setattr("mm_cli.config.CONFIG_DIR", config_dir)
+    monkeypatch.setattr("mm_cli.config.CONFIG_FILE", config_dir / "config.toml")
 
 
 @pytest.fixture
