@@ -10,7 +10,7 @@ my-tool/
 │   ├── config.py            # platform-aware config loading (TOML)
 │   └── ...
 ├── tests/
-│   ├── conftest.py
+│   ├── conftest.py          # autouse isolation fixture
 │   └── test_*.py
 ├── .github/workflows/
 │   └── release.yml          # tag-triggered PyPI publish
@@ -34,7 +34,7 @@ dependencies = ["rich>=14"]  # human-facing output layer
 my-tool = "my_tool.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8.0", "ruff>=0.9"]
+dev = ["pytest>=8.0", "pytest-xdist>=3.8", "ruff>=0.9"]
 
 [build-system]
 requires = ["hatchling"]
@@ -45,10 +45,12 @@ packages = ["src/my_tool"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-n auto"
 
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+extend-exclude = [".agents", ".claude"]  # Library-managed copies
 ```
 
 ## Key Rules
@@ -57,6 +59,8 @@ line-length = 100
 - `src/` layout — prevents accidental local imports during development.
 - `hatchling` as build backend — fast, no `setup.py`.
 - `dependency-groups` for dev deps — uv-native, not `extras`.
+- Tests run in parallel and isolated from the real home directory and git
+  config; see [test-suite-upkeep.md](test-suite-upkeep.md).
 - `rich` is the only default runtime dependency — it renders human-facing
   output. A library without a CLI entry point does not need it. See
   `update-and-ux.md` for the human/machine output split.

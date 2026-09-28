@@ -53,12 +53,12 @@ checks block the merge.
   "hostRules": [{ "matchHost": "npm.cognovis.de", "token": "{{ secrets.NPM_TOKEN }}" }],
   "packageRules": [
     {
-      "matchPackagePatterns": ["^@polaris/", "^@cognovis/"],
+      "matchPackagePatterns": ["^@product-a/", "^@cognovis/"],
       "matchUpdateTypes": ["patch", "minor"],
       "automerge": true
     },
     {
-      "matchPackagePatterns": ["^@polaris/", "^@cognovis/"],
+      "matchPackagePatterns": ["^@product-a/", "^@cognovis/"],
       "matchUpdateTypes": ["major"],
       "automerge": false,
       "labels": ["sdk-major"]

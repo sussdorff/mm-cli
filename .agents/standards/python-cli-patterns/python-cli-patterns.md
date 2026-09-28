@@ -19,6 +19,7 @@ description: Python CLI tool conventions — project structure, versioning, PyPI
 | [config-resolution.md](config-resolution.md) | Platform config paths, `key_command`, lazy click context |
 | [distribution-packaging.md](distribution-packaging.md) | Hatchling `force-include`, package vs import names, `install-skill` |
 | [update-and-ux.md](update-and-ux.md) | Rich output layer, Click/Rich boundary, version self-check and update execution, shell completion, first-run wizard, output file conventions |
+| [test-suite-upkeep.md](test-suite-upkeep.md) | Periodic value review of TDD-grown tests, pytest-xdist, home and git-config isolation, no `uv run` in tests, lint scope |
 
 ## When These Patterns Apply
 
@@ -50,3 +51,5 @@ applies; the other sub-topics are optional.
 - Bundle non-Python files explicitly via Hatchling `force-include`.
 - Human-facing output goes through Rich; machine-consumable output stays plain
   and Rich-free. Rich does not bind agent- or hook-consumed helper scripts.
+- Tests keep only invariants, run in parallel, and never touch the real home
+  directory or global git config; review their value once per release train.
