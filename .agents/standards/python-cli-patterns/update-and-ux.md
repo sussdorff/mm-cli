@@ -60,7 +60,7 @@ project wants a Rich-rendered `--help`; it does not move the boundary.
 ### Markup and Emoji
 
 Rich console markup (`[bold]`, `[red]`, `[dim]`) is allowed. Rich's `:shortcode:`
-emoji markup and literal emoji are not — the `no-emoji` standard covers CLI
+emoji markup and literal emoji are not — the always-on no-emoji rule covers CLI
 output like any other string. Carry status with style, plain words, or ASCII
 symbols (`->`, `*`, `[ok]`).
 
@@ -73,12 +73,26 @@ parseable output (see the `execution-result-envelope` standard). Rich there
 costs a dependency resolution on every `uv run --script` invocation and
 decorates output that something else has to parse.
 
-## PyPI Version Self-Check
+## Version Self-Check and Update Execution
 
-CLI tools should check whether a newer version exists on PyPI and show a hint —
-but never self-update during execution.
+Detection is decentralized, execution is centralized:
 
-### Lightweight Inline Check
+- Every tool checks whether a newer version exists and prints a one-line hint.
+- No tool modifies its own installation during a normal command run. These
+  tools are mostly invoked by agents and hooks: an install that mutates
+  mid-run changes output contracts under the caller, and an interactive
+  update prompt hangs in non-TTY contexts.
+- Update execution is one implementation, not one per tool: the user or a
+  fleet-level updater command runs
+  `uv tool install <package> --force --refresh`. The hint prints exactly that
+  command.
+
+**Exception:** tools distributed to customers through an entitlement-gated
+package index may offer an interactive, TTY-gated update prompt — customers
+have no fleet manager. That logic lives in the customer platform's shared
+library, never in internal tools.
+
+### Lightweight Inline Check (public PyPI)
 
 Query the PyPI JSON API after the main command completes:
 
@@ -94,7 +108,10 @@ def check_for_update(package: str, current: str) -> str | None:
             latest = json.loads(resp.read())["info"]["version"]
             current_norm = normalize_version(current)
             if current_norm != latest:
-                return f"Update available: {current_norm} -> {latest}  (uv tool upgrade {package})"
+                return (
+                    f"Update available: {current_norm} -> {latest}"
+                    f"  (uv tool install {package} --force --refresh)"
+                )
             return None
     except (URLError, json.JSONDecodeError, KeyError, OSError):
         return None
@@ -105,14 +122,57 @@ if hint:
     err.print(f"\n[dim]{hint}[/dim]")   # Console(stderr=True)
 ```
 
+### Private Registry Check (Forgejo)
+
+Private tools check the same registry they install from — never public PyPI,
+where the name may be squatted. The Forgejo registry serves a PEP 503 simple
+index (`.../api/packages/<owner>/pypi/simple/<package>/`); request it with the
+same credentials the `[[index]]` entry in `~/.config/uv/uv.toml` already
+holds, and take the highest version from the listed filenames. The timeout,
+cache, and never-fail rules below apply unchanged.
+
 ### Design Rules
 
-1. Use the PyPI JSON API (`https://pypi.org/pypi/<package>/json`) — `pip index` and `uv pip index` are unreliable or nonexistent.
+1. Public tools use the PyPI JSON API (`https://pypi.org/pypi/<package>/json`) — `pip index` and `uv pip index` are unreliable or nonexistent. Private tools use their Forgejo simple index.
 2. Short timeout: 3 seconds for inline checks, 10 seconds for an adapter pattern.
 3. Cache the result for 24 hours.
-4. Show a hint only — never auto-update. Self-updating during execution can corrupt the running process.
+4. Show a hint only — never modify the tool's own installation during a normal command run. Self-updating mid-run can corrupt the running process and changes behavior under a calling agent.
 5. Normalize CalVer versions before comparison (see `versioning-release.md`).
 6. Never let check failures affect the CLI (`except ... pass`).
+
+## Shell Completion
+
+Detection follows the same shape as version checks: every tool exposes one
+uniform surface, installation is centralized.
+
+Every argparse CLI adds one flag to its root parser, generated from the live
+parser with [shtab](https://docs.iterative.ai/shtab/):
+
+```python
+import shtab  # small, pure-Python runtime dependency
+
+parser = argparse.ArgumentParser(prog="my-tool")
+shtab.add_argument_to(parser, ["--print-completion"])  # bash | zsh | tcsh
+```
+
+### Design Rules
+
+1. The flag is `--print-completion {bash,zsh,tcsh}` on the root parser — the
+   same surface on every tool, so an installer can enumerate installed tools
+   and collect scripts without per-tool knowledge.
+2. The generated scripts are static: subcommands and flags complete; dynamic
+   values (names, IDs) do not. A tool that needs dynamic completion for one
+   argument adds it deliberately, later, per tool.
+3. Do not use eval-based per-prompt completion (argcomplete): it starts a
+   Python interpreter on every TAB press and puts an `eval` line into every
+   shell rc.
+4. Installation is centralized, not per tool: the fleet manager collects
+   `<tool> --print-completion zsh` output into one completions directory on
+   the `fpath` and prints the rc snippet once. Tools never write to shell rc
+   files themselves.
+5. Click tools keep Click's built-in completion
+   (`_TOOL_COMPLETE=zsh_source <tool>`); the installer treats that as the
+   second known surface.
 
 ## First-Run Setup Wizard
 

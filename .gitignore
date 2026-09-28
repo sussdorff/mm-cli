@@ -23,7 +23,6 @@ htmlcov/
 uv.lock
 
 # Claude Code runtime state is ignored; Library-managed Skill bridges are shared.
-.claude/*
 !.claude/skills/
 !.claude/skills/**
 
@@ -47,3 +46,4 @@ uv.lock
 .session-close-state.json
 .session-close.lock
 .library.lock.workspace-lock
+
