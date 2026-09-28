@@ -16,11 +16,11 @@ The axis is **contract versus implementation**, not "SDK versus CLI".
 
 | Artifact | Scheme | Why |
 |----------|--------|-----|
-| Library, SDK, kit, client, type bundle (`@polaris/*`, `@cognovis/*`, Python packages other repos import) | SemVer `MAJOR.MINOR.PATCH`, one version per package | The number must carry the *meaning* of the change so ranges and bots can act on it |
+| Library, SDK, kit, client, type bundle (`@product-a/*`, `@cognovis/*`, Python packages other repos import) | SemVer `MAJOR.MINOR.PATCH`, one version per package | The number must carry the *meaning* of the change so ranges and bots can act on it |
 | Machine-consumed CLI protocol (JSON envelopes, error codes, exit codes, command names) | SemVer, versioned as its own package or a `contract` field the CLI reports | Agents and other programs match on it; a date cannot say what broke |
 | Independently distributed CLI binary | CalVer under `cli-versioning`; generic Python mechanics remain in `python-cli-patterns/versioning-release.md` | Freshness is the message; the contract it implements is versioned separately |
 | Service, application, container image | Per-artifact scheme declared by its release contract | A service can carry a SemVer release independently of its image build |
-| Monorepo of loosely coupled packages (polaris) | Each package its own independent SemVer; the repository tag stays CalVer and names the image build | Packages move at different speeds; the image is an implementation |
+| Monorepo of loosely coupled packages (for example a platform monorepo) | Each package its own independent SemVer; the repository tag stays CalVer and names the image build | Packages move at different speeds; the image is an implementation |
 
 An artifact is a library when at least one other repository lists it as a
 dependency. The first external consumer moves it to `>= 1.0.0`; the `0.x`
@@ -44,7 +44,7 @@ escape in `release/changelog.md` applies only before that point.
 6. A version consumers must leave is marked with `npm deprecate` naming the
    replacement.
 7. A library is not proven by a consumer. A consumer's need is stated in the
-   library bead as RED tests before implementation (`tdd-authoring`); the
+   library bead as RED tests before implementation (`tdd`); the
    library ships when its own tests are green.
 
 **Consumer invariants**
@@ -75,4 +75,4 @@ escape in `release/changelog.md` applies only before that point.
   for independently distributed CLI binaries.
 - `python-cli-patterns` — generic Python CLI release mechanics when
   `cli-versioning` does not apply.
-- `tdd-authoring` (skill) — how a consumer's need becomes RED tests.
+- `tdd` (skill) — how a consumer's need becomes RED tests.
