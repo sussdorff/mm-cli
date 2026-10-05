@@ -54,7 +54,7 @@ escape in `release/changelog.md` applies only before that point.
    plus a test asserting the pin.
 9. Update discovery is a bot (Renovate against Forgejo and `npm.cognovis.de`)
    opening one PR per update with the changelog excerpt. PATCH and MINOR
-   auto-merge on green CI; MAJOR is merged by a human or a issue naming the
+   auto-merge on green CI; MAJOR is merged by a human or an issue naming the
    migration. No prose or issue note asks "is there something newer".
 10. Co-developing a library and its consumer in one session uses `bun link`,
     a workspace, or `file:` — locally only. A manifest that reaches `main`
@@ -64,7 +64,7 @@ escape in `release/changelog.md` applies only before that point.
 ## Exceptions
 
 - One `package.json` serving a CLI and a library is split into two packages.
-- An exact pin in a consumer is permitted only inside a issue naming the
+- An exact pin in a consumer is permitted only inside an issue naming the
   reason (a known-bad range) and carrying the follow-up to remove it.
 
 ## Related Standards

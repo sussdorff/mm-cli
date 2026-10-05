@@ -13,7 +13,7 @@ script.
 | `bump-class-matches` (PR check) | The bump between `main` and the PR equals the class derived from the PR's commits per `bump-decision.md` | `feat` commits with only a PATCH bump; `!` commit without MAJOR |
 | `canonical-semver` (PR check and publish gate) | `version` matches `^\d+\.\d+\.\d+$` | Any pre-release or build suffix |
 | `one-version-per-merge` (publish gate) | The version being published has no existing tag and no registry entry | Re-publish of an existing version |
-| `changelog-entry` (PR check) | The changed package's `CHANGELOG.md` gained an entry under the new version citing a issue ID | Bump without changelog, or entry without issue ID |
+| `changelog-entry` (PR check) | The changed package's `CHANGELOG.md` gained an entry under the new version citing an issue ID | Bump without changelog, or entry without issue ID |
 | `peer-range` (PR check) | Sibling packages of the family are declared in `peerDependencies` as ranges, not exact pins | Missing peer, or exact peer version |
 | `scheme-declared` (repo config) | The repository release config states `version_scheme: semver` for the package (`release/release-lifecycle.md`) | Scheme missing or `calver` on an SDK |
 
@@ -24,7 +24,7 @@ checks block the merge.
 
 | Guard | Verifies | Fails when |
 |-------|----------|------------|
-| `range-not-pin` (lint) | Every SDK dependency in the manifest is a caret or tilde range | Exact version in the manifest without a issue-cited exception comment |
+| `range-not-pin` (lint) | Every SDK dependency in the manifest is a caret or tilde range | Exact version in the manifest without an issue-cited exception comment |
 | `no-pin-assert` (lint) | No test asserts the literal version of an SDK dependency | A contract test compares `dependencies["@x/y"]` to a string |
 | `lockfile-consistent` (CI) | Install with frozen lockfile succeeds and `node_modules` matches the lockfile | Manifest and lockfile disagree |
 | `renovate-configured` (repo check) | `renovate.json` exists, enables the private registry, and sets automerge for `patch` and `minor` on SDK packages | Missing or automerge off |
