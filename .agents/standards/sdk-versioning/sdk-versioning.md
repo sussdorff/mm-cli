@@ -38,13 +38,13 @@ escape in `release/changelog.md` applies only before that point.
    followed by a PATCH, never retracted. Third-party FHIR IG packages with
    ballot suffixes are consumed, never produced.
 4. `CHANGELOG.md` per package, generated from commits, every entry citing its
-   Bead ID (`release/changelog.md` format).
+   issue ID (`release/changelog.md` format).
 5. Packages of one family declare each other as `peerDependencies` ranges,
    so an inconsistent install fails at install time.
 6. A version consumers must leave is marked with `npm deprecate` naming the
    replacement.
 7. A library is not proven by a consumer. A consumer's need is stated in the
-   library bead as RED tests before implementation (`tdd`); the
+   library issue as RED tests before implementation (`tdd`); the
    library ships when its own tests are green.
 
 **Consumer invariants**
@@ -54,8 +54,8 @@ escape in `release/changelog.md` applies only before that point.
    plus a test asserting the pin.
 9. Update discovery is a bot (Renovate against Forgejo and `npm.cognovis.de`)
    opening one PR per update with the changelog excerpt. PATCH and MINOR
-   auto-merge on green CI; MAJOR is merged by a human or a bead naming the
-   migration. No prose or bead note asks "is there something newer".
+   auto-merge on green CI; MAJOR is merged by a human or a issue naming the
+   migration. No prose or issue note asks "is there something newer".
 10. Co-developing a library and its consumer in one session uses `bun link`,
     a workspace, or `file:` — locally only. A manifest that reaches `main`
     references a published version; the guard in
@@ -64,7 +64,7 @@ escape in `release/changelog.md` applies only before that point.
 ## Exceptions
 
 - One `package.json` serving a CLI and a library is split into two packages.
-- An exact pin in a consumer is permitted only inside a bead naming the
+- An exact pin in a consumer is permitted only inside a issue naming the
   reason (a known-bad range) and carrying the follow-up to remove it.
 
 ## Related Standards

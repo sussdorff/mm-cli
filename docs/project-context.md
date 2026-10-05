@@ -42,7 +42,6 @@
 | `tests/` | Pytest suite covering CLI behavior, parsing, analysis logic, config handling, and rule suggestion behavior with fixtures and mocks | `test_cli.py`, `conftest.py`, `test_analysis.py` |
 | `.github/` | Release automation for test, build, and publish steps | `workflows/release.yml` |
 | `.claude/` | Repo-local implementation conventions and project learnings for coding agents | `CLAUDE.md` |
-| `.beads/` | Local bead tracking state, hooks, and workflow metadata used by `bd` | `PRIME.md`, `config.yaml` |
 | `docs/` | Static architecture and onboarding documents generated manually | `project-context.md` |
 | `repository root` | Packaging, release notes, and human-facing project documentation | `pyproject.toml`, `README.md`, `cliff.toml` |
 
@@ -96,7 +95,7 @@
 5. **Configuration must fail open to defaults**: Missing or malformed config files should never block command execution; `load_config()` should keep returning a default `Config`.
 6. **Mutation commands stay deliberate**: Transfer creation, category updates, checkmark updates, and comment updates should validate identifiers and keep preview / confirmation paths where available.
 7. **Live-app verification is part of feature completion**: `.claude/CLAUDE.md` explicitly requires testing significant changes against the real MoneyMoney app after unit tests, because mocked fixtures do not guarantee real AppleScript payload compatibility.
-8. **Repository work is tracked in beads**: New follow-up work belongs in `bd`, not in ad hoc markdown task lists or undocumented TODO piles.
+8. **Repository work is tracked in hosted issues**: New follow-up work belongs in `ccore tracker`, not in ad hoc markdown task lists or undocumented TODO piles.
 
 ## Enforcement Matrix
 
