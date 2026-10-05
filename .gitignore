@@ -31,16 +31,10 @@ uv.lock
 !.cursor/skills/
 !.cursor/skills/**
 
-# Dolt database files (added by bd init)
 .dolt/
 *.db
 
-# Beads JSONL export is local; Dolt is the source of truth.
-.beads/issues.jsonl
 
-# Beads runtime artifacts (run state, metrics)
-.beads/runs/
-.beads/export-state.json
 
 # Session-close runner artifacts
 .session-close-state.json
@@ -48,10 +42,6 @@ uv.lock
 .library.lock.workspace-lock
 
 
-# Beads runtime locks and local credential (machine-specific)
-/.beads.gate.lock
-/.beads/*.gate.lock
-/.beads/.beads-credential-key
 
 # Claude Code local runtime caches
 /.claude/anatomy.json

@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "v[0-9]*"            # every tag (incl. session-close bead tags) -> tests only
+      - "v[0-9]*"            # every tag (incl. session-close issue tags) -> tests only
   release:
     types: [published]        # intentional release -> tests + PyPI publish
   workflow_dispatch:          # manual release (version from VERSION file) -> tests + PyPI publish
@@ -45,7 +45,7 @@ jobs:
   publish:
     needs: [test, lint]
     # Gate: publish only on an intentional release or manual dispatch,
-    # never on a bare tag push (session-close tags every bead close).
+    # never on a bare tag push (session-close tags every issue close).
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
     environment:

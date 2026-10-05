@@ -30,7 +30,7 @@
 4. **Favor scriptable CLI surfaces over interactive-only behavior**: Most read commands support structured output and deterministic flags. Even human-facing commands are designed to be predictable in shell pipelines, with JSON/CSV output and consistent error exits.
 5. **Keep local state minimal and additive**: The only persistent local state in the package is the XDG config file created by `mm init`, which stores transfer filtering and active-group preferences. Everything else is recomputed from live MoneyMoney exports.
 6. **Be conservative with financial mutations**: Commands that can change data or initiate money movement validate aggressively, provide dry-run or confirmation paths, and surface clear user-facing errors instead of raw stack traces.
-7. **Treat repository operations as part of the architecture**: `AGENTS.md` and `.claude/CLAUDE.md` make issue tracking through `bd`, release hygiene, and live MoneyMoney verification part of the project's expected workflow rather than optional process documentation.
+7. **Treat repository operations as part of the architecture**: `AGENTS.md` and `.claude/CLAUDE.md` make issue tracking through `ccore tracker`, release hygiene, and live MoneyMoney verification part of the project's expected workflow rather than optional process documentation.
 
 ## Module Map
 
@@ -42,7 +42,6 @@
 | `tests/` | Pytest suite covering CLI behavior, parsing, analysis logic, config handling, and rule suggestion behavior with fixtures and mocks | `test_cli.py`, `conftest.py`, `test_analysis.py` |
 | `.github/` | Release automation for test, build, and publish steps | `workflows/release.yml` |
 | `.claude/` | Repo-local implementation conventions and project learnings for coding agents | `CLAUDE.md` |
-| `.beads/` | Local bead tracking state, hooks, and workflow metadata used by `bd` | `PRIME.md`, `config.yaml` |
 | `docs/` | Static architecture and onboarding documents generated manually | `project-context.md` |
 | `repository root` | Packaging, release notes, and human-facing project documentation | `pyproject.toml`, `README.md`, `cliff.toml` |
 
@@ -96,7 +95,7 @@
 5. **Configuration must fail open to defaults**: Missing or malformed config files should never block command execution; `load_config()` should keep returning a default `Config`.
 6. **Mutation commands stay deliberate**: Transfer creation, category updates, checkmark updates, and comment updates should validate identifiers and keep preview / confirmation paths where available.
 7. **Live-app verification is part of feature completion**: `.claude/CLAUDE.md` explicitly requires testing significant changes against the real MoneyMoney app after unit tests, because mocked fixtures do not guarantee real AppleScript payload compatibility.
-8. **Repository work is tracked in beads**: New follow-up work belongs in `bd`, not in ad hoc markdown task lists or undocumented TODO piles.
+8. **Repository work is tracked in hosted issues**: New follow-up work belongs in `ccore tracker`, not in ad hoc markdown task lists or undocumented TODO piles.
 
 ## Enforcement Matrix
 

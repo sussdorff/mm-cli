@@ -13,7 +13,7 @@ lexicographic string comparison is invalid: `2026.10.1` follows `2026.9.9`.
 
 `changelog-entry` remains a PR-only guard. Its CLI adaptation requires the
 affected tool's adjacent `CHANGELOG.md` heading for the bumped CalVer and its
-Bead ID. The tag workflow has a separate `changelog-present` gate that confirms
+work order ID. The tag workflow has a separate `changelog-present` gate that confirms
 the already-reviewed heading remains present; it does not recompute the PR
 diff.
 
