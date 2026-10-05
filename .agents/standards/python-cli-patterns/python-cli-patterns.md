@@ -19,7 +19,7 @@ description: Python CLI tool conventions — project structure, versioning, PyPI
 | [config-resolution.md](config-resolution.md) | Platform config paths, `key_command`, lazy click context |
 | [distribution-packaging.md](distribution-packaging.md) | Hatchling `force-include`, package vs import names, `install-skill` |
 | [update-and-ux.md](update-and-ux.md) | Rich output layer, Click/Rich boundary, version self-check and update execution, shell completion, first-run wizard, output file conventions |
-| [test-suite-upkeep.md](test-suite-upkeep.md) | Periodic value review of TDD-grown tests, pytest-xdist, home and git-config isolation, no `uv run` in tests, lint scope |
+| [test-suite-upkeep.md](test-suite-upkeep.md) | Audit cadence for TDD-grown suites, pytest-xdist, home and git-config isolation, no `uv run` in tests, lint scope |
 
 ## When These Patterns Apply
 

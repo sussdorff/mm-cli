@@ -1,44 +1,36 @@
 # Test Suite Upkeep
 
 A CLI built test-first accumulates one test per RED step. Once the feature is
-green, many of those tests have done their job. They pin wording, docs,
-templates or intermediate shapes, and they add runtime without adding
-protection. Review the suite on a schedule, run it in parallel, and isolate it
-from the developer's machine.
+green, some of those tests have done their job. Keep the suite honest, run it in
+parallel, and isolate it from the developer's machine.
 
 ## Value Review
 
-Review the suite at least once per release train. Review it sooner when a
-serial local run exceeds about one minute, or when CI and local runtimes differ
-by more than a factor of three. A gap that size means the environment is
-leaking into the tests; see Isolation below.
+The installed `tdd` skill owns the general testing method — what a good test is,
+where seams go, the anti-patterns. It does not cover a suite that already exists.
+The keep, repair, replace and remove dispositions and the evidence each one needs
+are the `test-audit` skill's procedure, and this standard does not hold a second
+copy of them.
 
-Keep a test when it proves one of these:
+A value review starts when a person runs `/test-audit` for this repository or a
+path set in it; the skill is explicit-only, so no agent begins one off an ordinary
+test edit. Bring that review to the suite at least once per release train, and
+follow the dispositions it returns.
 
-- the CLI starts, parses its commands and emits its documented output contract
-  (JSON envelope, exit codes)
-- a refusal happens before any side effect (validation, prohibited input,
-  missing authority)
-- a data-loss guard holds (dirty worktree, protected branch, a directory the
-  tool must not delete)
-- a security boundary holds (no credential in output or logs, no argument
-  injection, no plain-http token transport, no SSRF)
-- idempotency or recovery holds (replay, conflict, uncertain outcome)
-- a regression that actually happened stays fixed
+`test-audit` is distributed by the `cognovis-daily` Workspace. Where a repository's
+Workspace does not carry it, it has to be installed explicitly; report the missing
+command as a setup gap rather than installing it, running it unasked, or rebuilding
+its dispositions here.
 
-Delete a test when it:
+Two runtime signals say the audit is overdue sooner:
 
-- asserts prose in README, SKILL.md, CHANGELOG, release docs or templates
-- duplicates a stronger test at the same seam, including parameter sweeps
-  where one case per failure class suffices
-- pins an intermediate TDD step or an implementation detail that no user or
-  caller depends on
-- is permanently skipped, or needs an environment that CI never has
+- a serial local run exceeding about one minute
+- CI and local runtimes differing by more than a factor of three, which means the
+  developer's environment is leaking into the tests; see Isolation below
 
-Evidence for a deletion: the pull request lists each kept test and the
-invariant it covers, and states the before and after count and runtime. Delete
-fixtures and helpers that no remaining test references. When in doubt about a
-real-git or real-filesystem data-loss test, keep it and make it fast instead.
+As part of an authorized repair in the existing delivery, delete fixtures and helpers
+that no remaining test references, and update any document that lists test files by
+path. An audit-only review recommends that cleanup in its report and changes nothing.
 
 ## Parallel Execution
 
