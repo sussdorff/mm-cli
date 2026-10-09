@@ -1,3 +1,9 @@
+---
+requires_standards:
+  - writing/plain-technical-english
+  - writing/third-party-notices
+---
+
 # Unslop: removing AI tells from prose
 
 > **Scope**: Prose written for people. [plain-technical-english.md](plain-technical-english.md)

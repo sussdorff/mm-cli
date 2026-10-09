@@ -29,7 +29,7 @@ skill changes the domain model.
 1. Before writing, migrate a legacy glossary on touch, all in one change. Paths are relative to the context root.
    - With `CONTEXT.md` and no `GLOSSARY.md`, run `git mv CONTEXT.md GLOSSARY.md`. With both, merge the `CONTEXT.md` terms into `GLOSSARY.md`, ask the user about conflicting definitions, then `git rm CONTEXT.md`.
    - Move the old `## Decisions` lines into that context's `docs/decisions.md` and rewrite each link relative to `docs/decisions.md`: `docs/adr/x.md` becomes `adr/x.md`, `docs/bdr/x.md` becomes `bdr/x.md`. Merge into an existing `docs/decisions.md`; never overwrite it.
-   - With `CONTEXT-MAP.md`, run `git mv CONTEXT-MAP.md GLOSSARY-MAP.md` and migrate every context it lists in the same change, so the map never mixes old and new names.
+   - With `CONTEXT-MAP.md` and no `GLOSSARY-MAP.md`, run `git mv CONTEXT-MAP.md GLOSSARY-MAP.md`. With both, merge the `CONTEXT-MAP.md` entries into `GLOSSARY-MAP.md`, resolve conflicting context definitions, then `git rm CONTEXT-MAP.md`. Migrate every context the map lists in the same change, so the map never mixes old and new names.
    - Update references to the renamed files in `AGENTS.md`, `CLAUDE.md`, `docs/agents/domain.md` and the per-context links of `GLOSSARY-MAP.md`.
 2. Challenge terms against `GLOSSARY.md`. Call out conflicts immediately.
 3. Sharpen fuzzy or overloaded language into a canonical term.

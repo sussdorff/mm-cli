@@ -27,7 +27,7 @@ On first run, macOS will ask whether `osascript` may control MoneyMoney. Approve
 
 - macOS (required for AppleScript)
 - [MoneyMoney](https://moneymoney-app.com/) installed and unlocked
-- Python 3.12+ (installed automatically by `uv tool install`)
+- Python 3.14 or newer, on its latest patch release (installed automatically by `uv tool install`)
 
 ## Installation
 
@@ -352,6 +352,14 @@ uv sync --dev
 uv run pytest
 uv run ruff check .
 ```
+
+Before pushing, run the preflight. It checks that every toolchain declaration (Python, uv, CI setup actions) follows the latest-toolchain standard; the host's global pre-push hook runs it automatically when present:
+
+```bash
+bash scripts/dev/preflight.sh
+```
+
+Keep `uv` itself current with `uv self update`; `uv python upgrade` keeps Python on its latest patch release.
 
 ### Release workflow
 

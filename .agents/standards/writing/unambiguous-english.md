@@ -1,3 +1,10 @@
+---
+requires_standards:
+  - writing/plain-technical-english
+  - writing/third-party-notices
+  - writing/unslop
+---
+
 # Unambiguous English
 
 > **Scope**: Prose written for people, alongside

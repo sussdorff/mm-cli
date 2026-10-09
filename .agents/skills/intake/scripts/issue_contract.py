@@ -41,7 +41,7 @@ CONTRIBUTOR_MARKER = re.compile(r"(?m)^contributes_issue_intake:\s*true\s*$")
 LABEL_FAMILIES_RE = re.compile(r"```issue-label-families\s*(?P<payload>.*?)```", re.DOTALL)
 # Any other `<word>-label-families` fence (for example the retired tracker's
 # name) would otherwise be skipped silently and drop the overlay's families.
-FOREIGN_LABEL_FAMILIES_RE = re.compile(r"(?m)^```(?P<name>[\w.-]+-label-families)\b")
+FOREIGN_LABEL_FAMILIES_RE = re.compile(r"(?m)^ {0,3}```(?P<name>[\w.-]+-label-families)\b")
 
 SECTION_RE = re.compile(
     r"^## (?P<title>Pflichtfelder|Anti-Patterns)\n(?P<body>.*?)(?=^## |\Z)",

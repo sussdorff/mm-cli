@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - python-cli-patterns/forgejo-registry
+---
+
 # Versioning and Release
 
 ## Applicability

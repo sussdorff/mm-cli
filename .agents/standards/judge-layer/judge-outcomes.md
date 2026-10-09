@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - judge-layer
+---
+
 # Judge Outcomes
 
 Contract URI: `standard://judge-layer/outcomes/judge-outcome.v1`

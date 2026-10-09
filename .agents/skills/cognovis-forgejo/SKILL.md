@@ -35,9 +35,9 @@ only `hosts:`; it drops the key when that is the same file. Because the key and
 `FGJ_HOSTNAME` outrank remote detection, pass `--hostname` explicitly in a Codeberg or
 GitHub checkout.
 
-Whenever `FGJ_TOKEN` is exported, `FGJ_HOSTNAME` or `FGJ_HOST` is mandatory. With
-`FGJ_TOKEN` set, an unconfigured host does not fail: fgj sends that token to the
-fallback host, `codeberg.org`.
+Whenever `FGJ_TOKEN` is exported, `FGJ_HOSTNAME` is mandatory. With `FGJ_TOKEN` set,
+an unconfigured host does not fail: fgj sends that token to the fallback host,
+`codeberg.org`.
 
 Check, with `FGJ_TOKEN` unset: `env -u FGJ_TOKEN fgj api /version` run from a directory
 outside any checkout, such as `/tmp`, returns the git.cognovis.de Forgejo version.
@@ -58,7 +58,7 @@ outside any checkout, such as `/tmp`, returns the git.cognovis.de Forgejo versio
 
 ## Workflow
 
-1. Preconditions. `fgj auth status` lists `git.cognovis.de`, or load `set -a; source ~/.config/cognovis/forgejo.env; set +a` and export `FGJ_TOKEN` together with `FGJ_HOSTNAME=git.cognovis.de` (or `FGJ_HOST=git.cognovis.de`) without printing values; never export `FGJ_TOKEN` alone ([Default host](#default-host)). Done when the auth and the `fgj api /version` check pass.
+1. Preconditions. `fgj auth status` lists `git.cognovis.de`, or load `set -a; source ~/.config/cognovis/forgejo.env; set +a` and export `FGJ_TOKEN` together with `FGJ_HOSTNAME=git.cognovis.de` without printing values; never export `FGJ_TOKEN` alone ([Default host](#default-host)). Done when the auth and the `fgj api /version` check pass.
 2. Route via the table. Pass `-R owner/repo --hostname git.cognovis.de` outside a primary checkout of the repo, including in a linked worktree. Done when the command matches the task.
 3. Logs only after [references/ids.md](references/ids.md): `GET /actions/runs/{run_id}/jobs` and use field `id`, never `task_id` or UI `#N`. Done when the log request used that `id`.
 4. Verify: list `ID` is the API run id, `view` prints `Run: #N`, logs are `200 text/plain`, runners used `--visible`. Done when those facts are reported.

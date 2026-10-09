@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - judge-layer
+---
+
 # Provenance Labels
 
 Contract URI: `standard://judge-layer/provenance/provenance-label.v1`

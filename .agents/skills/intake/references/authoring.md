@@ -46,7 +46,8 @@ entry declares `github` or `forgejo`. Do not spawn an agent. For each candidate:
    - one `## Human Decision Gate` section only when the work changes a production
      system or sends a customer a message with content (shared `AGENTS.md`, Scope and
      authorization); internal work, including CI secrets and internal hosts, takes no
-     gate. Follow `standards/judge-layer/decision-gate.md`: include decision owner,
+     gate. A stricter repository-specific rule requiring a human gate for additional
+     categories wins over this general rule. Follow `standards/judge-layer/decision-gate.md`: include decision owner,
      approval class (`production-change` or `customer-message`), allowed outcomes from `ALLOW` / `BLOCK` / `REVISE` /
      `ESCALATE`, trigger timing, minimum evidence plan, operational do-nothing/default
      outcome, delivery consequence, overrideability, and sequencing constraints.

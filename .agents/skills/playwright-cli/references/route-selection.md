@@ -35,7 +35,7 @@ Status is the first call and usually the only one you need:
 
 ```bash
 # bounded-projection: preview-status
-jq -c '.structuredContent as $s | if ($s | type) != "object" or ($s.available | type) != "boolean" or ($s.loading | type) != "boolean" or ($s.visible | type) != "boolean" then {error: "preview status did not match the advertised schema"} | halt_error(1) else ((($s.url // "") | capture("^(?<s>https?)://(?:[^@/]*@)?(?<h>[A-Za-z0-9.-]{1,253})(?<p>:[0-9]{1,5})?(?:[/?#]|$)")?) // null) as $u | {available: $s.available, loading: $s.loading, visible: $s.visible, origin: (if $u == null then null else $u.s + "://" + $u.h + ($u.p // "") end), tabId: ((($s.tabId // "") | select(test("^[A-Za-z0-9_-]{1,64}$"))) // null), title_chars: (($s.title // "") | length)} end'
+jq -c '.structuredContent as $s | if ($s | type) != "object" or ($s.available | type) != "boolean" or ($s.loading | type) != "boolean" or ($s.visible | type) != "boolean" then {error: "preview status did not match the advertised schema"} | halt_error(1) else ((($s.url // "") | capture("^(?<s>https?)://(?:[^@/?#]*@)?(?<h>[A-Za-z0-9.-]{1,253})(?<p>:[0-9]{1,5})?(?:[/?#]|$)")?) // null) as $u | {available: $s.available, loading: $s.loading, visible: $s.visible, origin: (if $u == null then null else $u.s + "://" + $u.h + ($u.p // "") end), tabId: ((($s.tabId // "") | select(test("^[A-Za-z0-9_-]{1,64}$"))) // null), title_chars: (($s.title // "") | length)} end'
 ```
 
 It emits three declared booleans, a re-assembled origin (scheme, host, optional
@@ -51,7 +51,7 @@ project the answer — never take a page snapshot for it:
 
 ```bash
 # bounded-projection: preview-evaluate
-jq -c '.structuredContent as $s | if ($s | type) != "object" or ($s | has("value") | not) or ($s.value | type) != "object" then {error: "preview evaluate did not return a named-field object"} | halt_error(1) else {fields: ([$s.value | to_entries[] | select(.key | test("^[a-z][A-Za-z0-9_]{0,31}$")) | {key: .key, value: (if (.value | type) == "string" then {chars: (.value | length)} elif ((.value | type) == "object" or (.value | type) == "array") then {type: (.value | type)} else .value end)}] | .[0:20] | from_entries)} end'
+jq -c '["password","secret","token","otp","pin","code","key","credential","auth"] as $sensitive | .structuredContent as $s | if ($s | type) != "object" or ($s | has("value") | not) or ($s.value | type) != "object" then {error: "preview evaluate did not return a named-field object"} | halt_error(1) else {fields: ([$s.value | to_entries[] | select(.key | test("^[a-z][A-Za-z0-9_]{0,31}$")) | {key: .key, value: (if (.key | ascii_downcase) as $k | ($sensitive | any(. as $s | $k | test($s))) then "[redacted]" elif (.value | type) == "string" then {chars: (.value | length)} elif ((.value | type) == "object" or (.value | type) == "array") then {type: (.value | type)} else .value end)}] | .[0:20] | from_entries)} end'
 ```
 
 Write the expression so it returns named non-text facts, for example
@@ -162,11 +162,13 @@ costs tens of thousands of tokens.
 - **Expand by name.** When one more fact is needed, ask for that named fact and
   project the answer; do not lift the bound globally.
 
-Bounded status projection:
+Bounded status projection. Every record must carry a string `name`, a string
+`status` and a boolean `attached`; one malformed record fails the whole list
+instead of being dropped, and an empty list is a valid result:
 
 ```bash
 # bounded-projection: playwright-list
-playwright-cli list --json | jq -c '[.browsers[] | {name, status, attached}]'
+playwright-cli list --json | jq -c 'if type != "object" or (.browsers | type) != "array" or any(.browsers[]; type != "object" or (.name | type) != "string" or (.status | type) != "string" or (.attached | type) != "boolean") then {error: "browser list did not match the advertised schema"} | halt_error(1) else [.browsers[] | {name, status, attached}] end'
 ```
 
 Bounded page reading with this CLI. `--depth` and an element argument make the

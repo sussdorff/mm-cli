@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - judge-layer
+---
+
 # Human Decision Gate
 
 Contract URI: `standard://judge-layer/decision-gate.v1`
@@ -17,7 +22,7 @@ The only authoring representation in a work-order body is a markdown section nam
 
 Related contracts: [Decision Brief](decision-brief.md), [Stop Taxonomy](stop-taxonomy.md),
 [Judge Outcomes](judge-outcomes.md), [Mandate Schema](mandate-schema.md), and
-[ADR-0003](../../docs/adr/ADR-0003-judge-layer-architecture.md).
+[ADR-0003](https://git.cognovis.de/cognovis/library-core/src/branch/main/docs/adr/ADR-0003-judge-layer-architecture.md).
 
 ## Required Fields
 
@@ -35,6 +40,13 @@ Related contracts: [Decision Brief](decision-brief.md), [Stop Taxonomy](stop-tax
 
 Field labels in work order markdown SHOULD use title case, for example
 `Decision owner:`. The validator treats labels case-insensitively.
+
+A field counts only as rendered text inside the gate section, which ends at
+the next level-1 or level-2 heading. Text in fenced or indented code and in
+HTML comments does not count; a `<!--` inside an inline code span is code, not
+a comment. The text of a code span that continues onto a later line is code
+too, and a backslash-escaped backtick opens no span. Declare each field once: a repeated field is rejected rather than
+letting one declaration override another.
 
 ## When a Gate Exists
 

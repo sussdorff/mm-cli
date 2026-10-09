@@ -1,4 +1,4 @@
-"""The merge gate requires a pr-agent review, not only a pr-agent classification."""
+"""Landing requires a pr-agent review, not only a pr-agent classification."""
 
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ def test_step_7_answers_the_missing_review_notice_with_a_review_request() -> Non
     notice = step_7[step_7.index(NOTICE_MARKER) :]
     assert "comments `/review`" in notice
     assert "once per notice" in notice
-    assert "instead of merging" in notice
+    assert "instead of landing" in notice
     assert "delivery request that invokes this skill authorizes" in notice
     assert "authorizes no other comment" in notice
 
@@ -58,7 +58,7 @@ def test_missing_review_notice_releases_once_a_later_review_exists() -> None:
     step_7 = " ".join(_section(SKILL, "## 7. Merge decision").split())
     notice = step_7[step_7.index(NOTICE_MARKER) :]
     assert (
-        "holds the merge only while no pr-agent review comment was written or edited "
+        "holds the landing only while no pr-agent review comment was written or edited "
         "after it" in notice
     )
     assert "the notice no longer blocks" in notice
@@ -68,7 +68,10 @@ def test_missing_review_notice_releases_once_a_later_review_exists() -> None:
 def test_pull_requests_without_a_work_order_keep_the_review_condition() -> None:
     section = _section(SKILL, "## Pull requests without a work order")
     still_holds = " ".join(section[section.index("Every other step 7 condition") :].split())
-    assert "a pr-agent review comment exists on the pull request" in still_holds
+    assert (
+        "a pr-agent review comment written or last edited at or after the push of the "
+        "current head exists on the pull request" in still_holds
+    )
 
 
 def test_standard_boundaries_require_both_review_and_classification() -> None:

@@ -45,6 +45,26 @@ title>" --source-ref <harness>:<session-id> "<text>"`. The text lists each learn
 where it was encoded (file, pull request link) or why it stayed prose. Report the Open
 Brain memory id.
 
+## Delivery teardown prerequisite
+
+Delivery teardown must have run before this retro starts. If executive-pack did not
+reach its teardown step (for example because it crashed), call the installed teardown
+helper from the executive-pack root (resolved local-first:
+`<repo>/.agents/skills/executive-pack`, `<repo>/.claude/skills/executive-pack`,
+`~/.agents/skills/executive-pack`, `~/.claude/skills/executive-pack`):
+
+```text
+uv run --no-project python <helper-root>/scripts/delivery_teardown.py teardown --record-file <record>
+```
+
+Include the `Teardown:` line in the retro's report. Compose cleanup uses the released
+constrained `harness docker-clean` route; raw `docker compose down` is never called.
+If the harness is absent or refuses, the exact attempted command is reported as blocked.
+A missing record file is an explicit blocker (`Teardown: blocked`): it may indicate
+failed initialization, lost state or a wrong record path. An initialized record with no
+entries produces `Teardown: complete`. The delivery record must survive until teardown
+completes; do not remove the worktree before teardown.
+
 ## Boundaries
 
 This skill performs no merge, no push of the delivery branch, no issue closure and no

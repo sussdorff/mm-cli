@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - judge-layer
+---
+
 # Decision Brief
 
 Contract URI: `standard://judge-layer/decision-brief.v1`
@@ -12,7 +17,7 @@ radius, rollback, deployment timing, and do-nothing analysis.
 
 Related contracts: [Decision Gate](decision-gate.md), [Stop Taxonomy](stop-taxonomy.md),
 [Judge Outcomes](judge-outcomes.md), [Mandate Schema](mandate-schema.md), and
-[ADR-0003](../../docs/adr/ADR-0003-judge-layer-architecture.md).
+[ADR-0003](https://git.cognovis.de/cognovis/library-core/src/branch/main/docs/adr/ADR-0003-judge-layer-architecture.md).
 
 ## Compact Manager View
 

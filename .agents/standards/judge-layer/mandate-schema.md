@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - judge-layer
+---
+
 # Mandate Schema
 
 Contract URI: `standard://judge-layer/mandates/mandate.v1`

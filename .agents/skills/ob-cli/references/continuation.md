@@ -11,8 +11,9 @@ action gets recommended again.
 ### 1. Find the prior record, bounded
 
 ```bash
-ob --json search "<project or host> release readiness" --limit=5 | jq -c '[.results[]
-  | {id, title, type, created_at, excerpt: ((.excerpt // .content // "") | .[0:300])}]'
+# bounded-projection: ob-continuation-search
+ob --json search "<project or host> release readiness" --limit=5 | jq -c '(if type == "array" then {results: .} else . end) | [.results[]
+  | {id, title, type, created_at, excerpt: ((.excerpt // .content // "") | gsub("!\\[(?<alt>[^]]*)\\]\\([^)]+\\)"; "[image: \(.alt)]") | gsub("data:[^,]+,[A-Za-z0-9+/=]{20,}"; "[inline-data]") | .[0:300])}]'
 ```
 
 Search terms that work: the host or customer name, the repository, the artifact,

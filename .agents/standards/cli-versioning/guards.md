@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - sdk-versioning/guards
+---
+
 # CLI Versioning Guard Deltas
 
 [`sdk-versioning/guards.md`](../sdk-versioning/guards.md) is canonical for

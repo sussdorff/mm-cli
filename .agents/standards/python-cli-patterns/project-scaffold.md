@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - python-cli-patterns/test-suite-upkeep
+---
+
 # Project Scaffold
 
 Every Python CLI tool follows this directory layout.
@@ -27,7 +32,7 @@ version = "0.0.0.dev0"       # stamped by CI, never edited manually
 description = "What it does"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = ["rich>=14"]  # human-facing output layer
 
 [project.scripts]

@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - judge-layer
+---
+
 # Judge Eval Suite
 
 Contract URI: `standard://judge-layer/evals/judge-eval-suite.v1`

@@ -161,7 +161,9 @@ AC_TABLE_COLUMN_RE = re.compile(
 )
 TABLE_SEPARATOR_CELL_RE = re.compile(r"^:?-+:?$")
 MOC_AC_COLUMN_RE = re.compile(r"^(?:ac|acceptance criteri(?:on|a))$", re.IGNORECASE)
-HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+# A `<!--` behind an odd number of backslashes is literal and opens no comment;
+# behind an even number (group 1, kept on substitution) the comment is real.
+HTML_COMMENT_RE = re.compile(r"(?<!\\)((?:\\\\)*)<!--.*?-->", re.DOTALL)
 REVIEW_HISTORY_HEADING_RE = re.compile(
     r"^#{1,6}\s+(?:reviewer[- ]fix|review[- ]round|reviewer[- ]repair|correction[- ]log)\b",
     re.IGNORECASE | re.MULTILINE,
@@ -515,7 +517,7 @@ def _required_section_findings(
 
 
 def _section_has_content(section: str) -> bool:
-    return bool(HTML_COMMENT_RE.sub("", section).strip())
+    return bool(HTML_COMMENT_RE.sub(r"\1", section).strip())
 
 
 def _evaluate_content_rule(
@@ -1440,6 +1442,22 @@ def _unfenced_lines(markdown: str) -> list[tuple[int, str]]:
     return lines
 
 
+def _next_comment(text: str, start: int = 0) -> int:
+    """Return the start of the first ``<!--`` at or after ``start`` that opens a comment, or -1.
+
+    A ``<`` behind an odd number of backslashes is escaped and literal, so its
+    ``<!--`` opens no comment; behind an even number the backslashes escape each
+    other and the comment is real.
+    """
+    found = text.find("<!--", start)
+    while found >= 0:
+        slashes = len(text[:found]) - len(text[:found].rstrip("\\"))
+        if not slashes % 2:
+            return found
+        found = text.find("<!--", found + 1)
+    return -1
+
+
 def _heading_candidate_lines(markdown: str) -> list[tuple[int, str]]:
     """Unfenced lines that do not start inside an HTML comment.
 
@@ -1461,7 +1479,7 @@ def _heading_candidate_lines(markdown: str) -> list[tuple[int, str]]:
                 in_comment = False
                 position = end + 3
             else:
-                start = line.find("<!--", position)
+                start = _next_comment(line, position)
                 if start < 0:
                     break
                 in_comment = True

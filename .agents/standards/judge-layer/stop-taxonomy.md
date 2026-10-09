@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - judge-layer
+---
+
 # Stop Taxonomy and Operational Risk
 
 Contract URI: `standard://judge-layer/stops/stop-taxonomy.v1`
@@ -11,7 +16,7 @@ runtime taxonomy.
 
 Related contracts: [Decision Brief](decision-brief.md), [Decision Gate](decision-gate.md),
 [Judge Outcomes](judge-outcomes.md), [Action Proposal](action-proposal.md), and
-[ADR-0003](../../docs/adr/ADR-0003-judge-layer-architecture.md).
+[ADR-0003](https://git.cognovis.de/cognovis/library-core/src/branch/main/docs/adr/ADR-0003-judge-layer-architecture.md).
 
 ## Crosswalk to ADR-0003 `risk_class`
 

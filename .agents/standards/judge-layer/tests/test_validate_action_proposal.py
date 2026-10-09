@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = ROOT / "standards" / "judge-layer" / "scripts" / "validate_action_proposal.py"
+STANDARD_DIR = Path(__file__).resolve().parents[1]
+SCRIPT = STANDARD_DIR / "scripts" / "validate_action_proposal.py"
 
 
 def valid_proposal():

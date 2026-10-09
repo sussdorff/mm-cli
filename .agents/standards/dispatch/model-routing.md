@@ -36,7 +36,7 @@ is unavailable, or when the native attempt fails:
 | `opus` | `claude-opus` on `claude` |
 | `fable` | `claude-fable` on `claude` |
 | `sonnet` (review) | `gpt-6-sol` on `codex`; the catalog has no Astra route |
-| `haiku` (review, non-UI verification) | `gpt-6.1-sol` on `codex` with `--reasoning xhigh`; not a starter route |
+| `haiku` (review, non-UI verification) | `gpt-6.1-sol` on `codex` with `--reasoning xhigh` |
 | `haiku` (UI verification) | `gpt-6-luna` on `codex` |
 
 When both `sonnet` and `haiku` use their fallback routes, the two GPT reviewers are two
@@ -52,6 +52,11 @@ The catalog is `ccore agent models --json`. A configured catalog entry is not pr
 the route is reachable right now. When neither the alias nor the fallback route works,
 stop and report the dispatch diagnostic; never substitute another model silently and
 never continue a step with fewer actors than it requires.
+
+A Grok route that exhausts its quota may be tried once on the same backend model
+through the Cursor harness, under the bounded procedure in the `agent-dispatch`
+skill's "Grok quota fallback through Cursor" section. That attempt keeps its role,
+changes no row above, and adds or replaces no reviewer.
 
 ## Not routed
 

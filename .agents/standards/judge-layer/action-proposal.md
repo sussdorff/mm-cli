@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - judge-layer
+---
+
 # Action Proposal
 
 Contract URI: `standard://judge-layer/proposals/action-proposal.v1`

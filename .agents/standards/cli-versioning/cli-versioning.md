@@ -1,6 +1,8 @@
 ---
 rule: cli-versioning
 description: Independently distributed CLI binaries use per-tool CalVer releases, tagged publication, and per-tool changelogs while their machine contracts remain SemVer.
+requires_standards:
+  - sdk-versioning
 ---
 
 # CLI Versioning

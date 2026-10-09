@@ -1,8 +1,10 @@
 # Pull request authoring contract
 
-Everything about the body's shape — the template, the section order, which visual to
-pick for Summary, how to word Merge Danger — belongs to the installed `pr` skill. This
-file holds only what Cognovis adds on top of it.
+The body's shape — the template, the section order, which visual to pick, how to word
+Merge Danger — belongs to the installed `pr` skill. This file holds only what Cognovis
+adds on top of it, including the release-note rules for the title and Summary:
+`ccore pr merge` lands the pull request as one squash commit whose subject is the title
+and whose body is the `## Summary` section, and that commit feeds the release notes.
 
 ## Resolve the installed `pr` skill
 
@@ -18,9 +20,28 @@ has it, report that setup failure instead of writing a template from memory.
 
 ## Title
 
-Line one of the file, at most 120 characters, naming the observable result rather than
-the activity. `Reduce the Praxis IG to two extensions and eight code systems` beats
+Line one of the file is a Conventional Commits title, `type(scope): description`. The
+type is one of `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`,
+`chore` or `revert`; `!` after the type or scope marks a breaking change. The title is
+at most 120 characters, and its description names the observable result rather than the
+activity. It becomes the squash commit subject.
+`feat(praxis-ig): reduce the Praxis IG to two extensions and eight code systems` beats
 `Refactor IG`.
+
+## Summary
+
+The template's `## Summary` section holds only one to three sentences of release-note
+prose: the user-visible change and why it matters, written for someone reading release
+notes. It has no diagram, no file list, no internal process such as reviews,
+verification or delivery steps. It becomes the squash commit body. Keep the closing
+reference `Closes #<n>` out of it, in the Work order reference section below; ccore adds
+closing references to the commit itself.
+
+## Change shape
+
+The visual the `pr` skill puts in Summary (a diagram, diff-sketch or tree) goes into its
+own section `## Change shape`, directly after `## Summary`, so it does not land in the
+commit. Choose and draw it as the `pr` skill describes.
 
 ## Cross-repository references
 
@@ -38,7 +59,10 @@ A bare `#N` is only for the same repository, as in `Closes #<n>`.
 
 Append these after the sections the `pr` skill defines. This is the single list of
 what a Cognovis delivery adds to the upstream template; a calling skill supplies the
-content and does not keep its own copy of the list.
+content and does not keep its own copy of the list. In the pull request body each of
+these sections is a level-2 heading (`## Verification`, `## Risk statement` and so on):
+`ccore pr merge` reads only level-2 headings. The `###` headings below are this
+document's structure.
 
 ### Work order reference
 
@@ -53,8 +77,13 @@ restating the findings.
 
 ### Verification
 
-The verdict from the delivery's non-author verifier, the head SHA it verified, and each
-run path with its observed result. A new commit on the branch invalidates the verdict.
+The verdict from the delivery's non-author verifier, the full 40-character SHA of the
+head `ccore pr merge` starts from, and each run path with its observed result. That head
+is the verified head or, after a stopped `ccore pr merge` run, the squashed head that
+`executive-pack` records under the same verdict. `ccore pr merge` refuses
+(`pr_land_verification_stale`) a Verification section that does not name that full SHA;
+an abbreviated SHA does not count. A commit the delivery adds to the branch invalidates
+the verdict.
 `executive-pack` owns both this section's content and the verifier; do not produce a
 verdict here.
 
@@ -76,6 +105,12 @@ Economic damage: none expected - <reason>
 
 Name the deviation or the expected damage instead when one exists. `executive-pack`
 owns both assessments and the merge decision; this section only records them.
+
+Only when `executive-pack` passes a repository `AGENTS.md` waiver of pr-agent evidence
+for landing, this section also carries one plain prose line
+`pr-agent review not required: <reason>` whose reason cites that `AGENTS.md` waiver,
+outside any fenced code block (`ccore pr merge` does not read it inside one). Without
+such a waiver, never write the line.
 
 ### Risk statement
 
@@ -155,4 +190,6 @@ the body, picks `gh` or `fgj` from the remote, and appends the identity footer w
 harness, session and work-order references. Do not write that footer yourself. It
 rebases onto the target before its first push; when that moves the head commit, the
 Verification section needs a fresh verdict. Push later commits with a plain `git push`.
-The merge decision stays with the `executive-pack` delivery.
+The merge decision stays with the `executive-pack` delivery. `ccore pr merge` reads the
+title and Summary when it lands the pull request, so make them final before then; any
+edit up to landing changes the landed commit text.

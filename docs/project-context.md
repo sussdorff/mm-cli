@@ -7,7 +7,7 @@
 
 | Layer | Technology | Version / Notes |
 |-------|------------|-----------------|
-| Language | Python | `>=3.12` from `pyproject.toml` |
+| Language | Python | `>=3.14` from `pyproject.toml`, on its latest patch release |
 | Runtime | macOS + `osascript` | The CLI only works on macOS and automates the MoneyMoney desktop app through AppleScript |
 | CLI framework | Typer | Command tree and argument parsing live in `mm_cli/cli.py` |
 | Terminal UI | Rich | Human-readable tables, styled status messages, and CSV/JSON output helpers live in `mm_cli/output.py` |

@@ -1,11 +1,13 @@
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[3]
-DECISION_BRIEF = ROOT / "standards" / "judge-layer" / "decision-brief.md"
-STOP_TAXONOMY = ROOT / "standards" / "judge-layer" / "stop-taxonomy.md"
-DECISION_GATE = ROOT / "standards" / "judge-layer" / "decision-gate.md"
-MANDATE_SCHEMA = ROOT / "standards" / "judge-layer" / "mandate-schema.md"
+# Shipped with the standard: read only the standard's own directory, which is all a
+# consumer installing judge-layer (no requires_standards) receives.
+STANDARD_DIR = Path(__file__).resolve().parents[1]
+DECISION_BRIEF = STANDARD_DIR / "decision-brief.md"
+STOP_TAXONOMY = STANDARD_DIR / "stop-taxonomy.md"
+DECISION_GATE = STANDARD_DIR / "decision-gate.md"
+MANDATE_SCHEMA = STANDARD_DIR / "mandate-schema.md"
 
 
 RISK_CLASSES = {
@@ -102,15 +104,3 @@ def test_decision_gate_field_set_is_disjoint_from_mandate_required_fields() -> N
     assert MANDATE_REQUIRED_FIELDS <= mandate_fields
     assert not gate_fields & MANDATE_REQUIRED_FIELDS
     assert "mandate-schema.md" in gate_text
-
-
-def test_no_mcp_server_tree_is_introduced() -> None:
-    assert not (ROOT / "mcp-servers").exists()
-
-    # library-core#74 admission: the author check moved from scripts/ into the
-    # intake skill (.git/delivery/admission-library-core-74.md seam 1).
-    scanned_files = [ROOT / "skills" / "intake" / "scripts" / "issue-author-check.py"]
-
-    for path in scanned_files:
-        assert path.is_file(), f"Missing scanned author check: {path}"
-        assert "metadata.decision_gates" not in _read(path)

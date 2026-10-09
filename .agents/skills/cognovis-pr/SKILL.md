@@ -18,15 +18,18 @@ review channel is operated by `forgejo-review-channel`, not here.
 - Verified evidence: commands run with verdicts, screenshots for a user-visible
   surface, and known residuals.
 - From the delivery: the `finding_triage.py --review-decisions` output, the
-  non-author verifier's verdict with the head SHA it verified, the model route
-  each reviewer used, the product decision and economic damage assessments, and the
-  Risk statement content when the review risk is not `none`.
+  non-author verifier's verdict with the full head SHA it verified, the model route
+  each reviewer used, the product decision and economic damage assessments, the
+  Risk statement content when the review risk is not `none`, and the repository's
+  `AGENTS.md` waiver of pr-agent evidence when `executive-pack` passes one.
 
 ## Outputs
 
-- One Markdown file outside the worktree. Line one is the title, at most 120
-  characters; the sections follow in the order defined by
-  `references/authoring.md`.
+- One Markdown file outside the worktree. Line one is a Conventional Commits title
+  of at most 120 characters; the sections follow in the order defined by
+  `references/authoring.md`. `ccore pr merge` lands the pull request as one squash
+  commit whose subject is the title and whose body is the `## Summary` section, so
+  both are release-note text.
 
 ## Workflow
 
@@ -34,7 +37,8 @@ review channel is operated by `forgejo-review-channel`, not here.
    template for the body. `references/authoring.md` resolves it and holds only
    what Cognovis adds. `pr` is installed globally on each host by `harness bootstrap`; the Library does not ship
    it, and a missing one is a setup failure to report.
-2. Write the body from that template, then add the Cognovis sections defined in
+2. Write the body from that template with the title, `## Summary` and
+   `## Change shape` rules of `references/authoring.md`, then add the Cognovis sections defined in
    `references/authoring.md`: the work-order reference, Review decisions,
    Verification, reviewer routes, Merge assessment, Risk statement and Known residuals.
    That reference is the only place this list is held; a caller supplies the content,
@@ -55,4 +59,4 @@ review channel is operated by `forgejo-review-channel`, not here.
 
 | File | Purpose |
 |---|---|
-| `references/authoring.md` | Resolving the installed `pr` skill, the title rule, the Cognovis sections, screenshot handling, ccore handoff. |
+| `references/authoring.md` | Resolving the installed `pr` skill, the title, Summary and Change shape rules, the Cognovis sections, screenshot handling, ccore handoff. |

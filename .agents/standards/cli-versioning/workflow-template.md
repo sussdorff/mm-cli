@@ -1,3 +1,8 @@
+---
+requires_standards:
+  - cli-versioning/guards
+---
+
 # Per-CLI Tag Workflow Template
 
 A publication workflow is scoped to one CLI tag pattern. Its inputs identify a

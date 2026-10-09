@@ -31,7 +31,9 @@ Steps and actors (models per the `dispatch/model-routing` standard):
    commit.
 6. pull request - always; pr-agent reviews it once for standards and conventions and
    sets the `review-risk:*` label as classification.
-7. merge decision - the main session, under the conditions in the executive-pack skill.
+7. merge decision - the main session, under the conditions in the executive-pack skill;
+   every repository lands through `ccore pr merge` as one squash commit from the pull
+   request text, and the main session never merges through the forge otherwise.
 8. session retro - `session-retro`.
 
 ## Boundaries
@@ -49,7 +51,9 @@ Steps and actors (models per the `dispatch/model-routing` standard):
   line is its floor, applied by pr-agent. No class blocks an agent merge by itself, but
   a merge needs both a pr-agent review on the pull request and a pr-agent
   classification of the current head that is not `unclassified`. They are separate
-  outputs; a classification without a review is missing pr-agent evidence.
+  outputs; a classification without a review is missing pr-agent evidence. Both hold the
+  landing unless the repository's `AGENTS.md` explicitly waives pr-agent evidence for
+  landing.
 - The main session merges itself unless the change makes a product decision that differs
   from the work order, or economic damage is to be expected (money movement, billing or
   invoices, irreversible customer-data loss, a realistic personal-data leak, contractual
@@ -67,6 +71,38 @@ Steps and actors (models per the `dispatch/model-routing` standard):
 - A documentation-only change, with or without a work order, is verified by the
   relevant link and metadata checks plus an instruction review by a non-author agent.
 - An explicit human merge gate from the user or the repository always wins.
+- pr-agent evidence exists only where the repository configures pr-agent. Without it,
+  the pr-agent review and classification conditions can never be met, so the delivery
+  does not land unless the repository's `AGENTS.md` explicitly waives pr-agent evidence
+  for landing; an unconfigured pr-agent is no waiver by itself. With that waiver the
+  pull request body cites it. A missing pr-agent comment in a configured repository is
+  pending evidence, not an unconfigured repository.
+- Required checks: when the target's `.cognovis/repo.toml` declares
+  `[landing] wait_for_ci = true`, the CI wait inside `ccore pr merge` is the check.
+  Otherwise the main session reads the pull request's required checks on the head
+  `ccore pr merge` starts from and does not land while one fails or is pending.
+
+## Verification
+
+- The verifier observes only: it never modifies containers, their DNS or `resolv.conf`,
+  networks or host configuration to make a run pass. An environment failure is the
+  result, reported with command and output; a patched run proves nothing, and a verifier
+  that dies after patching leaves a tainted environment and no verdict.
+- The verified head is the head that lands. A moved target branch is rebased onto
+  (directly or by `ccore pr ensure`) before verification; a rebase the delivery makes
+  after the verdict invalidates it. `ccore pr merge`'s own rebase and squash onto a
+  moved default branch is covered by the pre-push hook on the squashed candidate; a
+  commit the delivery adds invalidates the verdict. A head that `ccore pr merge` produced
+  in an earlier, stopped run (the verified tree plus its own rebase and squash, no
+  delivery commit) keeps the verdict. While it is not yet on the target, the
+  Verification section names its full SHA and a pr-agent review written after its push
+  is needed again; once it is the target's landing commit of this pull request,
+  `ccore pr merge` records the preconditions as checked by the earlier run.
+- A dead or credit-exhausted reviewer or verifier route (for example HTTP 402) is a route
+  failure, never a verdict or a clean review, and is reported with route and diagnostic.
+  Verification moves to another permitted route whose actor authored neither the
+  implementation nor any repair. A reviewer seat without a permitted substitute route
+  needs the user's explicit waiver, recorded in the pull request with the failed route.
 
 ## Review risk
 
