@@ -4,3 +4,10 @@ reviews:
   profile: chill
   request_changes_workflow: false
   poem: false
+  # Library-managed installs: their source is cognovis/library-core, and a local
+  # edit would be overwritten by the next `library sync`. Review them upstream.
+  path_filters:
+    - "!.agents/**"
+    - "!.claude/agents/**"
+    - "!.claude/skills/**"
+    - "!.codex/agents/**"
