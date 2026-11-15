@@ -49,4 +49,4 @@ jobs:
       - name: Check toolchain versions
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 .agents/standards/toolchains/scripts/check_toolchain_versions.py
+        run: python3 scripts/dev/check_toolchain_versions.py

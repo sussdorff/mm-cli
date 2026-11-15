@@ -69,7 +69,8 @@ dev = [
 [tool.ruff]
 target-version = "py314"
 line-length = 100
-extend-exclude = [".agents", ".claude"]
+# Moved unchanged from Library; it targets any python3, not this project's py314 rules.
+extend-exclude = ["scripts/dev/check_toolchain_versions.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "C4"]

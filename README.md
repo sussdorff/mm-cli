@@ -76,19 +76,12 @@ Re-run with `--force` after changing `pyproject.toml`.
 All commands are available via `mm`. Run `mm --help` for a full list, or
 `mm <command> --help` for details on any command.
 
-### Development Workspace
+### Development checks
 
-The repository registers `cognovis-library-core:python-cli` in
-`.library.lock`. This Workspace supplies the shared `python-dev` and
-`python-test` Skills plus their declared Standards without claiming any mm-cli
-application source, test, or release file. The same canonical `.agents` content
-is projected to supported coding harnesses through Library-managed bridges.
-
-Inspect the desired state with:
-
-```text
-library workspace status --all --scope project --json
-```
+`scripts/dev/preflight.sh` runs before every push and checks that the
+repository uses the latest Python patch release and the latest uv. CI runs the
+same check. Agent skills such as `python-dev` and `python-test` come from the
+`cognovis` plugin, not from this repository.
 
 ## Configuration
 
